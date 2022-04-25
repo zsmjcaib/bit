@@ -4,7 +4,11 @@ import ccxt
 import pandas as pd
 import time
 from datetime import datetime
+from tool.deal import find_point
+from tool.line import find_line
+from chart import draw_kline
 from tool.get_macd import stock_macd
+from tool.point import simpleTrend
 from binance.spot import Spot
 
 
@@ -52,6 +56,21 @@ if __name__ == '__main__':
     # exchange_class = getattr(ccxt, exchange_id)
     exchange = ccxt.binance()
     for i in['15m','1h','4h']:
-        data = get_data(i, '2021-04-24 14:30:00')
-        data = stock_macd(data)
-        data.to_csv(api['btc']+'/normal_'+str(i)+'.csv',index=False)
+        # data = get_data(i, '2021-04-24 14:30:00')
+        # data = stock_macd(data)
+        # data.to_csv(api['btc']+'/normal_'+str(i)+'.csv',index=False)
+        # data = pd.read_csv(api['btc']+'/normal_'+str(i)+'.csv')
+        # data_simple = data[:7]
+        # data_simple = simpleTrend(data,data_simple)
+        # data_simple.to_csv(api['btc']+'/simple_'+str(i)+'.csv',index=False)
+        data_simple = pd.read_csv(api['btc']+'/simple_'+str(i)+'.csv')
+        # data_deal = pd.DataFrame(columns=['date', 'key', 'flag', 'temp'])
+        # data_deal = find_point(data_simple, data_deal)
+        # data_deal.to_csv(api['btc'] + '/deal_' + str(i) + '.csv', index=False)
+        data_deal = pd.read_csv(api['btc'] + '/deal_' + str(i) + '.csv')
+        # data_line = pd.DataFrame(columns=['date', 'key', 'flag', 'temp', 'small_to_large', 'first', 'second'])
+        # data_line = find_line(data_deal, data_line)
+        # data_line.to_csv(api['btc']+'/line_'+str(i)+'.csv',index=False)
+        data_line = pd.read_csv(api['btc']+'/line_'+str(i)+'.csv')
+        chart = draw_kline(data_simple,data_deal,data_line)
+        chart.render(api['btc']+'/chart_'+str(i) + ".html")
