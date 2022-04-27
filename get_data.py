@@ -4,11 +4,11 @@ import ccxt
 import pandas as pd
 import time
 from datetime import datetime
-from tool.deal import find_point
-from tool.line import find_line
+from utils.deal import find_point
+from utils.line import find_line
 from chart import draw_kline
-from tool.get_macd import stock_macd
-from tool.point import simpleTrend
+from utils.get_macd import stock_macd
+from utils.point import simpleTrend
 from binance.spot import Spot
 
 

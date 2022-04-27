@@ -1,0 +1,133 @@
+import pandas as pd
+import talib
+import os
+from utils.point import simpleTrend
+from utils.deal import find_point
+from utils.line import find_line
+from utils.strategy_buy import strategy_test,first_buying_init
+
+
+
+def stock_macd(df) -> pd.DataFrame:
+    if len(df)<36:
+        return df
+    if 'macd' not in df.columns:
+        df = macd(df)
+        return df
+    else:
+        df_temp = df[33:]
+        index = df_temp[df_temp['macd'] == ''].index.tolist()
+        if index!=[]:
+            df_normal = df[index[0]-33:]
+            df_normal = stock_macd(df_normal)
+            df = df[:index[0]].append(df_normal[33:])
+
+        return df
+
+def macd(df):
+    diff, dea, macd = talib.MACD(df["close"],
+                                 fastperiod=12,
+                                 slowperiod=26,
+                                 signalperiod=9)
+    df["diff"] = round(diff, 2)
+    df["dea"] = round(dea, 2)
+    df["macd"] = round(macd * 2, 2)
+    return df
+
+def csv_resample(df, rule) -> pd.DataFrame:
+    # 重新采样Open列数据
+    df_open = round(df['open'].resample(rule=rule, closed='right', label='left').first(), 2)
+    df_high = round(df['high'].resample(rule=rule, closed='right', label='left').max(), 2)
+    df_low = round(df['low'].resample(rule=rule, closed='right', label='left').min(), 2)
+    df_close = round(df['close'].resample(rule=rule, closed='right', label='left').last(), 2)
+    df_volume = round(df['vol'].resample(rule=rule, closed='right', label='left').sum(), 2)
+    # print("新周期数据已生成")
+    # 生成新周期数据
+    df_15t = pd.DataFrame()
+    df_15t = df_15t.assign(open=df_open)
+    df_15t = df_15t.assign(high=df_high)
+    df_15t = df_15t.assign(low=df_low)
+    df_15t = df_15t.assign(close=df_close)
+    df_15t = df_15t.assign(vol=df_volume)
+    # 去除空值
+    df_15t = df_15t.dropna()
+
+    return df_15t
+
+
+def import_csv(df,rule) -> pd.DataFrame:
+
+    df =df.copy()
+    df['date'] = pd.to_datetime(df['date'], format='%Y-%m-%d')
+    df = df.set_index(['date'])
+    df = csv_resample(df, rule)
+    df = stock_macd(df)
+    df.reset_index(inplace=True)
+    return df
+
+
+def test(type,api):
+    real_data = pd.read_csv(api[str(type)]+'/normal_15m.csv')
+    test_normal_15_path = api['test_'+str(type)]+'/normal_15m.csv'
+    test_normal_1h_path = api['test_'+str(type)]+'/normal_1h.csv'
+    test_normal_4h_path = api['test_'+str(type)]+'/normal_4h.csv'
+    test_simple_15_path = api['test_'+str(type)]+'/simple_15m.csv'
+    test_simple_1h_path = api['test_'+str(type)]+'/simple_1h.csv'
+    test_simple_4h_path = api['test_'+str(type)]+'/simple_4h.csv'
+    test_deal_15_path = api['test_'+str(type)]+'/deal_15m.csv'
+    test_deal_1h_path = api['test_'+str(type)]+'/deal_1h.csv'
+    test_deal_4h_path = api['test_'+str(type)]+'/deal_4h.csv'
+    test_line_15_path = api['test_'+str(type)]+'/line_15m.csv'
+    test_line_1h_path = api['test_'+str(type)]+'/line_1h.csv'
+    test_line_4h_path = api['test_'+str(type)]+'/line_4h.csv'
+
+    test_15 = real_data[:3000]
+    test_15 = test_15.reset_index(drop=True)
+    test_1h = import_csv(test_15, '1H')
+    test_4h = import_csv(test_15, '4H')
+
+    test_15_simple = test_15.iloc[0:10, 0:7].copy()
+    test_1h_simple = test_1h.iloc[0:10, 0:7].copy()
+    test_4h_simple = test_4h.iloc[0:10, 0:7].copy()
+
+    if not os.path.exists(test_deal_15_path ):
+        test_15_deal = pd.DataFrame(columns=['date','key','flag','temp'])
+        test_1h_deal = pd.DataFrame(columns=['date','key','flag','temp'])
+        test_4h_deal = pd.DataFrame(columns=['date','key','flag','temp'])
+        test_15_line = pd.DataFrame(columns=['date', 'key', 'flag', 'temp','small_to_large','first','second'])
+        test_1h_line = pd.DataFrame(columns=['date', 'key', 'flag', 'temp','small_to_large','first','second'])
+        test_4h_line = pd.DataFrame(columns=['date', 'key', 'flag', 'temp','small_to_large','first','second'])
+
+    else:
+        test_15_deal = pd.read_csv(test_deal_15_path)
+        test_1h_deal = pd.read_csv(test_deal_1h_path)
+        test_4h_deal = pd.read_csv(test_deal_4h_path)
+        test_15_line = pd.read_csv(test_line_15_path)
+        test_1h_line = pd.read_csv(test_line_1h_path)
+        test_4h_line = pd.read_csv(test_line_4h_path)
+
+
+
+
+
+
+
+
+
+    for i, row in real_data[3000:3050].iterrows():
+
+        test_15 = test_15.append(row).reset_index(drop=True)
+
+        test_15_simple =simpleTrend(test_15,test_15_simple)
+        test_1h_simple =simpleTrend(test_1h,test_1h_simple)
+        test_4h_simple =simpleTrend(test_4h,test_4h_simple)
+        test_15_deal = find_point(test_15_simple, test_15_deal)
+        test_1h_deal = find_point(test_1h_simple, test_1h_deal)
+        test_4h_deal = find_point(test_4h_simple, test_4h_deal)
+
+        test_15_line = find_line(test_15_deal , test_15_line)
+        test_1h_line = find_line(test_1h_deal , test_1h_line)
+        test_4h_line = find_line(test_4h_deal , test_4h_line)
+
+        result,mark_price = strategy_test(test_15_simple,test_15_deal,test_15_line,test_1h_simple,test_1h_deal,test_1h_line,
+                                          test_4h_simple,test_4h_deal,test_4h_line)
