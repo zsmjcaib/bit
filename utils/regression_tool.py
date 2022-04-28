@@ -129,5 +129,5 @@ def test(type,api):
         test_1h_line = find_line(test_1h_deal , test_1h_line)
         test_4h_line = find_line(test_4h_deal , test_4h_line)
 
-        result,mark_price = strategy_test(test_15_simple,test_15_deal,test_15_line,test_1h_simple,test_1h_deal,test_1h_line,
-                                          test_4h_simple,test_4h_deal,test_4h_line)
+        result,mark_price = strategy_test(test_15_simple,test_15,test_15_deal,test_15_line,test_1h,test_1h_deal,
+                                          test_1h_line,test_4h,test_4h_deal,test_4h_line)
