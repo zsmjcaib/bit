@@ -27,7 +27,9 @@ def draw_kline(df,deal,line):
     date = df['date'].tolist()
 
     # -----K线处理------------------
-    ohlc = df[['open', 'close', 'low', 'high']]  # oclh结构
+    # df[['high','close']]=df[['close','high']]
+    # ohlc = df[['open', 'high', 'low', 'close']]  # oclh结构
+    ohlc = df[['open', 'close', 'low', 'high']]
     df['vol']=0
     v = df['vol']
     data = np.array(ohlc).tolist()  # 通过np转为list

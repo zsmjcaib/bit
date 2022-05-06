@@ -7,7 +7,7 @@ from datetime import datetime
 from utils.deal import find_point
 from utils.line import find_line
 from chart import draw_kline
-from utils.get_macd import stock_macd
+from utils.util import stock_macd
 from utils.point import simpleTrend
 from binance.spot import Spot
 
@@ -68,9 +68,9 @@ if __name__ == '__main__':
         # data_deal = find_point(data_simple, data_deal)
         # data_deal.to_csv(api['btc'] + '/deal_' + str(i) + '.csv', index=False)
         data_deal = pd.read_csv(api['btc'] + '/deal_' + str(i) + '.csv')
-        # data_line = pd.DataFrame(columns=['date', 'key', 'flag', 'temp', 'small_to_large', 'first', 'second'])
-        # data_line = find_line(data_deal, data_line)
+        data_line = pd.DataFrame(columns=['date', 'key', 'flag', 'temp','small_to_large','first','second','is_test'])
+        data_line = find_line(data_deal, data_line)
         # data_line.to_csv(api['btc']+'/line_'+str(i)+'.csv',index=False)
-        data_line = pd.read_csv(api['btc']+'/line_'+str(i)+'.csv')
+        # data_line = pd.read_csv(api['btc']+'/line_'+str(i)+'.csv')
         chart = draw_kline(data_simple,data_deal,data_line)
         chart.render(api['btc']+'/chart_'+str(i) + ".html")
