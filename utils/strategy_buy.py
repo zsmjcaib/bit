@@ -31,7 +31,7 @@ def additional_piont(test_15,test_15_line,test_1h_line):
     i = test_15[test_15['date']==test_1h_line['date'].iloc[-1]].index.tolist()[-1]
     if (test_15["open"].iloc[-1]>test_15['open'].iloc[i] and test_15["close"].iloc[-1]>test_15['close'].iloc[i] and test_15_line["flag"].iloc[-1] == 'down')\
          and test_15_line.iat[-1, 0] + datetime.timedelta(minutes=-30) <= test_1h_line.iat[-1, 0] <test_15_line.iat[-1, 0] + datetime.timedelta(minutes=30):
-        print(str(test_15.iat[-1,0])+' '+str(test_15_line.iat[-1,0]))
+        # print(str(test_15.iat[-1,0])+' '+str(test_15_line.iat[-1,0]))
         test_15_line.iat[-1, 7] = 'yes'
         return True
 
@@ -372,8 +372,8 @@ def first_test(normal,deal,line,index,level):
 
                     df_4 = normal.iloc[now_lowest_start_index:now_end_index + 1]
                     now_lowest_macd = df_4[df_4['macd'] < 0]['macd'].sum() * 1.6
-                    now_lowest_macd_vaule = normal.iloc[now_end_index + 1]['macd']
-                    now_lowest_diff = normal.iloc[now_end_index + 1]['diff']
+                    now_lowest_macd_vaule = normal.iloc[now_end_index + 1 if level[1] == 'less_15m' else now_end_index]['macd']
+                    now_lowest_diff = normal.iloc[now_end_index + 1 if level[1] == 'less_15m' else now_end_index]['diff']
                     last_lowest_start_index = deal[deal["date"] == line["date"].iloc[i - 1]].index.tolist()[0]
                     last_lowest = deal[last_lowest_start_index:now_deal_lowest_end_index - 1].reset_index(drop=True)
                     last_lowest_macd = find_last_1_macd(last_lowest, normal, "down")
@@ -430,7 +430,7 @@ def strategy_test(test_15_simple,test_15,test_15_deal,test_15_line,test_1h,test_
 
 def calculate(low,low_deal,low_line,test_1h,high,test_1h_line):
     if low_line.iat[-1, 7] != 'yes':
-        h_flag, h_mark_price, h_result, h_l_to_h,mark ,_= first_test(test_1h, high, test_1h_line, -1, ['1h',''])
+        h_flag, h_mark_price, h_result, h_l_to_h,mark ,_= first_test(test_1h, high, test_1h_line, -1, ['1h','less_1h'])
         if mark!='no':
             l_flag, l_mark_price, l_result, l_l_to_h,_,lowest_flag = first_test(low, low_deal, low_line, -1, ['15m','less_15m'])
             low_line.iat[-1, 7] = 'yes'

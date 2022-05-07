@@ -6,6 +6,7 @@ from utils.deal import find_point
 from utils.line import find_line
 from utils.strategy_buy import strategy_test
 from chart import draw_kline
+import numpy as np
 from utils.small_to_large import check
 from utils.util import read_record
 import time
@@ -25,12 +26,19 @@ def stock_macd(df) -> pd.DataFrame:
         index = df_temp[df_temp['macd'] == ''].index.tolist()
         if index!=[]:
             df_normal = df[index[0]-33:]
-            df_normal = stock_macd(df_normal)
+            df_normal = macd(df_normal)
             df = df[:index[0]].append(df_normal[33:])
-
+        else:
+            index = np.isnan(df_temp['macd'])
+            index = index[index == True].index.tolist()
+            if index != []:
+                df_normal = df[index[0] - 33:]
+                df_normal = macd(df_normal)
+                df = df[:index[0]].append(df_normal[33:])
         return df
 
 def macd(df):
+    df = df.copy()
     diff, dea, macd = talib.MACD(df["close"],
                                  fastperiod=12,
                                  slowperiod=26,
@@ -109,7 +117,7 @@ def test(type,api):
 
 
 
-    test_15 = real_data[:3000]
+    test_15 = real_data[:5500]
     test_15 = test_15.reset_index(drop=True)
     test_1h = import_csv(test_15, '1H','','init')
     test_4h = import_csv(test_15, '4H','','init')
@@ -145,8 +153,9 @@ def test(type,api):
     b =time.time()
 
 
-    for i, row in real_data[3000:].iterrows():
+    for i, row in real_data[5500:].iterrows():
         if i%500 ==0:
+            print(test_15.iat[-1,0])
             grid_15_chart = chart_test(test_15_simple, test_15_deal, test_15_line)
             grid_15_chart.render(api['test_' + str(type)] + '15_' + 'last' + ".html")
             grid_1h_chart = chart_test(test_1h_simple, test_1h_deal, test_1h_line)
@@ -177,7 +186,7 @@ def test(type,api):
         #
         # test_4h_line = find_line(test_4h_deal , test_4h_line)
 
-        if str(test_15.iat[-1,0]) == '2022-01-01 02:30:00':
+        if str(test_15.iat[-1,0]) == '2021-06-22 14:00:00':
             print(1)
         if str(test_15.iat[-1,0]) == '2022-01-01 02:45:00':
             print(1)
