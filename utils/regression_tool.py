@@ -8,7 +8,7 @@ from utils.strategy_buy import strategy_test
 from chart import draw_kline
 import numpy as np
 from utils.small_to_large import check
-from utils.util import read_record
+from utils.util import read_first_record,read_buy_record
 import time
 
 def chart_test(df,deal,line):
@@ -109,15 +109,15 @@ def test(type,api):
     test_line_15_path = api['test_'+str(type)]+'/line_15m.csv'
     test_line_1h_path = api['test_'+str(type)]+'/line_1h.csv'
     test_line_4h_path = api['test_'+str(type)]+'/line_4h.csv'
-    record_first = read_record(api['test_'+str(type)]+'/record_first.csv')
-    record_second = (api['test_'+str(type)]+'/record_second.csv')
+    record_first = read_first_record(api['test_'+str(type)]+'/record_first.csv')
+    record_buy = read_buy_record(api['test_'+str(type)]+'/record_second.csv')
     record_small = (api['test_'+str(type)]+'/record_small.csv')
 
 
 
 
 
-    test_15 = real_data[:5500]
+    test_15 = real_data[:3000]
     test_15 = test_15.reset_index(drop=True)
     test_1h = import_csv(test_15, '1H','','init')
     test_4h = import_csv(test_15, '4H','','init')
@@ -153,7 +153,7 @@ def test(type,api):
     b =time.time()
 
 
-    for i, row in real_data[5500:].iterrows():
+    for i, row in real_data[3000:].iterrows():
         if i%500 ==0:
             print(test_15.iat[-1,0])
             grid_15_chart = chart_test(test_15_simple, test_15_deal, test_15_line)
@@ -186,17 +186,25 @@ def test(type,api):
         #
         # test_4h_line = find_line(test_4h_deal , test_4h_line)
 
-        if str(test_15.iat[-1,0]) == '2021-06-22 14:00:00':
+        if str(test_15.iat[-1,0]) == '2021-07-21 16:45:00':
             print(1)
-        if str(test_15.iat[-1,0]) == '2022-01-01 02:45:00':
+        if str(test_15.iat[-1,0]) == '2021-06-24 11:45:00':
             print(1)
-        if str(test_15.iat[-1,0]) == '2022-01-01 03:00:00':
+        if str(test_15.iat[-1,0]) == '2021-07-18 00:15:00':
             print(1)
 
-        result,mark_price = strategy_test(test_15_simple[-1500:].reset_index(drop=True),test_15[-1500:].reset_index(drop=True),test_15_deal,test_15_line,test_1h,test_1h_deal,
+        l,result,mark_price = strategy_test(test_15_simple[-1500:].reset_index(drop=True),test_15[-1500:].reset_index(drop=True),test_15_deal,test_15_line,test_1h,test_1h_deal,
                                           test_1h_line,test_4h,test_4h_deal,test_4h_line)
-        # if  result == 'yes':
-        #     record_first.loc[len(record_first)] = [test_15.iat[- 1, 0], mark_price,test_15.iat[- 1, 2],"", "", test_15.iat[- 2, 2], ""]
+        if  result == 'yes':
+            record_first = record_first.append(l, ignore_index=True)
+            record_first.iat[-1,0] = str(test_15_line.iat[-1,0])
+        if  len(test_15_line)>3 and len(record_first)>0 and record_first['flag'].iloc[-1] != 'yes':
+            if (str(test_15_line.iat[-4,0]) == record_first.iat[-1,0]) :
+                print('buy: '+ str(test_15.iat[-1,0])+' price: '+str(test_15['close'].iloc[-1])+' loss: '+ str(test_15_line['key'].iloc[-4]))
+                record_first['flag'].iloc[-1] = 'yes'
+            elif (str(test_15_line.iat[-3,0]) == record_first.iat[-1,0] and test_15['close'].iloc[-1] > test_15_line['key'].iloc[-2]):
+                print('buy: ' + str(test_15.iat[-1, 0]) + ' price: ' + str(test_15['close'].iloc[-1]) + ' loss: ' + str(test_15_line['key'].iloc[-3]))
+                record_first['flag'].iloc[-1] = 'yes'
         # if test_15_line.iloc[-1]["small_to_large"] =='yes' or test_15_line.iloc[-2]["small_to_large"] =='yes':
         #     result ,date,mark_price = check(test_15_deal,test_15_line)
         #     if result == 'yes':
@@ -208,7 +216,7 @@ def test(type,api):
     grid_15_chart.render(api['test_'+str(type)] + '15_' + 'last' + ".html")
     grid_1h_chart = chart_test(test_1h_simple, test_1h_deal, test_1h_line)
     grid_1h_chart.render(api['test_'+str(type)] + '1h_' + 'last' + ".html")
-    # grid_4h_chart = chart_test(test_4h_simple, test_4h_deal, test_4h_line)
-    # grid_4h_chart.render(api['test_'+str(type)] + '4h_' + 'last' + ".html")
+    grid_4h_chart = chart_test(test_4h_simple, test_4h_deal, test_4h_line)
+    grid_4h_chart.render(api['test_'+str(type)] + '4h_' + 'last' + ".html")
     record_first.to_csv(api['test_'+str(type)]+'/record_first.csv', index=False)
 

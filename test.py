@@ -1,5 +1,6 @@
 import time
 from datetime import datetime
+import pandas as pd
 
 
 
@@ -8,6 +9,7 @@ from datetime import datetime
 # obj_stamp = int(time.mktime(datetime_obj.timetuple()) * 1000.0 + datetime_obj.microsecond / 1000.0)
 # print(obj_stamp)
 i =0
-l = ['1','','2']
-print(l)
-
+l = ['1','4','2']
+print('3' in l)
+l = pd.DataFrame({'15m': '', '1h': '', '15m小转大': '', '1h小转大': ''}, index=[1])
+print(len(l))

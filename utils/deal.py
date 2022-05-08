@@ -96,13 +96,24 @@ def __deal_temp(df, df_point):
         index = df[df["date"] == df_point.iat[-1,0]].index.tolist()[0]
         if df_point['flag'].iloc[-1] == 'min':
             if df['low'].iloc[-1]<df_point['key'].iloc[-1]:
+
                 df_point.drop(df_point.tail(1).index, inplace=True)
                 new = pd.DataFrame({"date": df["date"].iloc[-1], "key":df['low'].iloc[-1], "flag": "min", "temp": "yes"},index=[1])
+                df_point = df_point.append(new, ignore_index=True)
+            #找最后一点
+            else:
+                i = df['high'][index+1:].idxmax()
+                new = pd.DataFrame({"date": df["date"].iloc[i], "key":df['high'].iloc[i], "flag": "max", "temp": "yes"},index=[1])
                 df_point = df_point.append(new, ignore_index=True)
         else:
             if df['high'].iloc[-1]>df_point['key'].iloc[-1]:
                 df_point.drop(df_point.tail(1).index, inplace=True)
-                new = pd.DataFrame({"date": df["date"].iloc[-1], "key":df['low'].iloc[-1], "flag": "max", "temp": "yes"},index=[1])
+                new = pd.DataFrame({"date": df["date"].iloc[-1], "key":df['high'].iloc[-1], "flag": "max", "temp": "yes"},index=[1])
+                df_point = df_point.append(new, ignore_index=True)
+            #找最后一点
+            else:
+                i = df['low'][index+1:].idxmin()
+                new = pd.DataFrame({"date": df["date"].iloc[i], "key":df['low'].iloc[i], "flag": "min", "temp": "yes"},index=[1])
                 df_point = df_point.append(new, ignore_index=True)
         return df_point
     except:

@@ -301,17 +301,21 @@ def  __last(df, df_line,small_date,first_date,second_date,small ):
             #没有更高的
             else:
             # #找低点
-                key = df["key"].iloc[index:].min()
-                key_index = df[df["key"] == key].index.tolist()[-1]
-                df_line.loc[len(df_line)] = [df.iat[key_index, 0], key, "down", "temp", "","","",""]
-                key_index+=3
-            # #最后高点
-                if (key_index  < len(df)):
-                    key = df["key"].iloc[key_index:].max()
-                    #是最高点
-                    if key == df["key"].iloc[key_index-2:].max():
+                index += 2
+                if index<=len(df):
+                    key_min = df["key"].iloc[index-2]
+                    key = df["key"].iloc[index:].min()
+                    if key_min >= key:
                         key_index = df[df["key"] == key].index.tolist()[-1]
-                        df_line.loc[len(df_line)] = [df.iat[key_index, 0], key, "rise", "temp", "","","",""]
+                        df_line.loc[len(df_line)] = [df.iat[key_index, 0], key, "down", "temp", "","","",""]
+                        key_index+=3
+                    # #最后高点
+                        if (key_index  <= len(df)):
+                            key = df["key"].iloc[key_index:].max()
+                            #是最高点
+                            if key == df["key"].iloc[key_index-2:].max():
+                                key_index = df[df["key"] == key].index.tolist()[-1]
+                                df_line.loc[len(df_line)] = [df.iat[key_index, 0], key, "rise", "temp", "","","",""]
 
 
 
@@ -353,17 +357,21 @@ def  __last(df, df_line,small_date,first_date,second_date,small ):
 
                 else:
                     # 找高点
-                    key = df["key"].iloc[index:].max()
-                    key_index = df[df["key"] == key].index.tolist()[-1]
-                    df_line.loc[len(df_line)] = [df.iat[key_index, 0], key, "rise", "temp", "", "", "", ""]
-                    key_index += 3
-                    # 最后低点
-                    if (key_index < len(df)):
-                        key = df["key"].iloc[key_index:].min()
-                        # 是最低点
-                        if key == df["key"].iloc[key_index - 2:].min():
+                    index += 2
+                    if index <= len(df):
+                        key_max = df["key"].iloc[index - 2]
+                        key = df["key"].iloc[index:].max()
+                        if key_max <= key:
                             key_index = df[df["key"] == key].index.tolist()[-1]
-                            df_line.loc[len(df_line)] = [df.iat[key_index, 0], key, "down", "temp", "", "", "", ""]
+                            df_line.loc[len(df_line)] = [df.iat[key_index, 0], key, "rise", "temp", "", "", "", ""]
+                            key_index += 3
+                            # 最后低点
+                            if (key_index <= len(df)):
+                                key = df["key"].iloc[key_index:].min()
+                                # 是最低点
+                                if key == df["key"].iloc[key_index - 2:].min():
+                                    key_index = df[df["key"] == key].index.tolist()[-1]
+                                    df_line.loc[len(df_line)] = [df.iat[key_index, 0], key, "down", "temp", "", "", "", ""]
 
 
 

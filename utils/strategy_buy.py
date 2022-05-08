@@ -380,6 +380,7 @@ def first_test(normal,deal,line,index,level):
                     if __deal(now_lowest_macd, last_lowest_macd) == 1:
                         str_5 = level[1]+'  macd面积 '
                         l_flag += 1
+                        l_to_h='yes'
                     if now_lowest_macd_vaule > 0 or now_lowest_macd_vaule > now_macd_min * 0.3:
                         l_flag += 1
                         str_6 = level[1] + ' macd严重背离 '
@@ -392,55 +393,68 @@ def first_test(normal,deal,line,index,level):
                         line.iat[-1, 5] = 'yes'
                         # print('first buy :' + str(line["date"].iloc[-1]) + ' ' + str_1 + str_2 + str_3 + str_4 + str_5 + str_6 + str_7+' '+str(normal["date"].iloc[-1]))
                         result = 'first buy :' + str(line["date"].iloc[-1]) + ' ' + str_1 + str_2 + str_3 + str_4 + str_5 + str_6 + str_7+' '+str(normal["date"].iloc[-1])
-                        return flag, line["key"].iloc[-1],result,l_to_h,'',l_flag
+                        return flag, line["key"].iloc[-1],result,l_to_h,''
 
                 if flag > 1 :
                     # print('first buy :' + str(line["date"].iloc[-1]) + ' ' + str_1 + str_2 + str_3 +' '+str(normal["date"].iloc[-1]) )
                     result = 'first buy :' + str(line["date"].iloc[-1]) + ' ' + str_1 + str_2 + str_3 +' '+str(normal["date"].iloc[-1])
-                    return flag, line["key"].iloc[-1],result,'no','',0
+                    return flag, line["key"].iloc[-1],result,'no',''
                 else:
                     # print('first buy :' + str( line["date"].iloc[-1]) + ' ' + str_1 + str_2 + str_3 )
                     result = '1h :' + str( line["date"].iloc[-1]) + ' ' + str_1 + str_2 + str_3
-                    return flag, 0,'','no','',0
-    return 0, 0,'','no','no',''
+                    return flag, 0,'','no',''
+    return 0, 0,'','no','no'
 
 
 
 def strategy_test(test_15_simple,test_15,test_15_deal,test_15_line,test_1h,test_1h_deal,test_1h_line,test_4h,test_4h_deal,test_4h_line):
+    l = pd.DataFrame({'date':'','first':'yes','15m':'','1h':'','15m小转大':'','1h小转大':''}, index=[1])
     if  test_15_line['is_test'].iloc[-1]!='yes':
         index = test_15_simple[test_15_simple["date"] == test_15_line.iloc[-1]["date"]].index.tolist()[0]
         if index == len(test_15_simple) - 3:
             #判断端点
             result=judge_piont(test_15_simple,test_1h_line,-3)
             if result and test_15_line.iat[-1, 7] != 'yes':
-                first_result, mark_price = calculate(test_15,test_15_deal,test_15_line,test_1h,test_1h_deal,test_1h_line)
-                return first_result, mark_price
+                l,result, mark_price = calculate(test_15,test_15_deal,test_15_line,test_1h,test_1h_deal,test_1h_line)
+                return l,result, mark_price
         elif index == len(test_15_simple) - 4:
             #判断端点
             result=judge_piont(test_15_simple,test_1h_line,-4)
             if result and test_15_line.iat[-1, 7] != 'yes':
-                first_result, mark_price = calculate(test_15, test_15_deal, test_15_line, test_1h, test_1h_deal,test_1h_line)
-                return first_result, mark_price
+                l,result, mark_price = calculate(test_15, test_15_deal, test_15_line, test_1h, test_1h_deal,test_1h_line)
+                return l,result, mark_price
         elif index< len(test_15_simple) - 4:
             result=additional_piont(test_15,test_15_line,test_1h_line)
             if result and test_15_line.iat[-1, 7] != 'yes':
-                first_result, mark_price = calculate(test_15,test_15_deal,test_15_line,test_1h,test_1h_deal,test_1h_line)
-                return first_result, mark_price
-    return 'no',0
+                l,result, mark_price = calculate(test_15,test_15_deal,test_15_line,test_1h,test_1h_deal,test_1h_line)
+                return l,result, mark_price
+    return l, 'no',0
 
 def calculate(low,low_deal,low_line,test_1h,high,test_1h_line):
+    l = pd.DataFrame({'date':'','first':'yes','15m':'','1h':'','15m小转大':'','1h小转大':''}, index=[1])
+    result = 'no'
+    mark_price =0
     if low_line.iat[-1, 7] != 'yes':
-        h_flag, h_mark_price, h_result, h_l_to_h,mark ,_= first_test(test_1h, high, test_1h_line, -1, ['1h','less_1h'])
+        h_flag, h_mark_price, h_result, h_l_to_h,mark = first_test(test_1h, high, test_1h_line, -1, ['1h','less_1h'])
         if mark!='no':
-            l_flag, l_mark_price, l_result, l_l_to_h,_,lowest_flag = first_test(low, low_deal, low_line, -1, ['15m','less_15m'])
+            l_flag, l_mark_price, l_result, l_l_to_h,_ = first_test(low, low_deal, low_line, -1, ['15m','less_15m'])
             low_line.iat[-1, 7] = 'yes'
-            if h_flag + l_flag > 4 or l_l_to_h == 'yes' or h_l_to_h == 'yes':
+            if h_flag + l_flag > 4 :
                 print(h_result + ' ' + l_result)
-                first_result = 'yes'
                 mark_price = l_mark_price
-                return first_result, mark_price
-            if h_flag!=0:
-                print('1h '+ h_result)
-            if lowest_flag!=0:
+                l.iat[-1,3]='y'
+                l.iat[-1,2]='y'
+                result = 'yes'
+            if h_l_to_h == 'yes':
+                print('1h小转大'+ h_result + ' ' + l_result)
+                mark_price = l_mark_price
+                l.iat[-1,5]='y'
+                result = 'yes'
+
+            if l_l_to_h == 'yes':
                 print('15m小转大： '+h_result + ' ' + l_result)
-    return 'no',0
+                mark_price = l_mark_price
+                l.iat[-1,4]='y'
+                result = 'yes'
+
+    return l,result, mark_price
