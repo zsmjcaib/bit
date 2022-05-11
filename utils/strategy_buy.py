@@ -1,6 +1,4 @@
 import pandas as pd
-import os
-from chart import chart_test
 import datetime
 
 def judge_piont(l_simple,h_line,index):

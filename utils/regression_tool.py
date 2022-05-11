@@ -46,6 +46,15 @@ def macd(df):
     df["diff"] = round(diff, 2)
     df["dea"] = round(dea, 2)
     df["macd"] = round(macd * 2, 2)
+    df["ma5"]  = talib.MA(df['close'],timeperiod=5)
+    df["ma10"] = talib.MA(df['close'], timeperiod=10)
+    df["ma20"] = talib.MA(df['close'], timeperiod=20)
+    df["ma60"] = talib.MA(df['close'], timeperiod=60)
+    df["ma120"] = talib.MA(df['close'],timeperiod=120)
+    df["ema5"] = talib.EMA(df['close'], timeperiod=5)
+    df["ema10"] = talib.EMA(df['close'], timeperiod=10)
+    df["ema20"] = talib.EMA(df['close'], timeperiod=20)
+
     return df
 
 def csv_resample(df, rule) -> pd.DataFrame:
@@ -198,18 +207,17 @@ def test(type,api):
         if  result == 'yes':
             record_first = record_first.append(l, ignore_index=True)
             record_first.iat[-1,0] = str(test_15_line.iat[-1,0])
-        if  len(test_15_line)>3 and len(record_first)>0 and record_first['flag'].iloc[-1] != 'yes':
-            if (str(test_15_line.iat[-4,0]) == record_first.iat[-1,0]) :
-                print('buy: '+ str(test_15.iat[-1,0])+' price: '+str(test_15['close'].iloc[-1])+' loss: '+ str(test_15_line['key'].iloc[-4]))
+        if len(test_15_line) > 3 and len(record_first) > 0 and record_first['flag'].iloc[-1] != 'yes':
+            if test_15['ma5'].iloc[-1] > test_15['ma20'].iloc[-1] and test_15['ema5'].iloc[-1] < test_15['close'].iloc[-1]:
+                print('buy: ' + str(test_15.iat[-1, 0]) + ' price: ' + str(test_15['close'].iloc[-1]) + ' loss: ' + str(test_15_line['key'].iloc[-1]))
                 record_first['flag'].iloc[-1] = 'yes'
-            elif (str(test_15_line.iat[-3,0]) == record_first.iat[-1,0] and test_15['close'].iloc[-1] > test_15_line['key'].iloc[-2]):
-                print('buy: ' + str(test_15.iat[-1, 0]) + ' price: ' + str(test_15['close'].iloc[-1]) + ' loss: ' + str(test_15_line['key'].iloc[-3]))
-                record_first['flag'].iloc[-1] = 'yes'
-        # if test_15_line.iloc[-1]["small_to_large"] =='yes' or test_15_line.iloc[-2]["small_to_large"] =='yes':
-        #     result ,date,mark_price = check(test_15_deal,test_15_line)
-        #     if result == 'yes':
-        #         record_small.loc[len(record_small)] = [test_15.iat[- 1, 0], mark_price, test_15.iat[- 1, 2],"", "", test_15.iat[- 2, 2], ""]
-        #         print('small to buy :' + ' '+str(i) + ' '+date+' now date'+ str(test_15.iat[-1,0]))
+        # if  len(test_15_line)>3 and len(record_first)>0 and record_first['flag'].iloc[-1] != 'yes':
+        #     if (str(test_15_line.iat[-4,0]) == record_first.iat[-1,0]) :
+        #         print('buy: '+ str(test_15.iat[-1,0])+' price: '+str(test_15['close'].iloc[-1])+' loss: '+ str(test_15_line['key'].iloc[-4]))
+        #         record_first['flag'].iloc[-1] = 'yes'
+        #     elif (str(test_15_line.iat[-3,0]) == record_first.iat[-1,0] and test_15['close'].iloc[-1] > test_15_line['key'].iloc[-2]):
+        #         print('buy: ' + str(test_15.iat[-1, 0]) + ' price: ' + str(test_15['close'].iloc[-1]) + ' loss: ' + str(test_15_line['key'].iloc[-3]))
+        #         record_first['flag'].iloc[-1] = 'yes'
 
 
     grid_15_chart = chart_test(test_15_simple, test_15_deal, test_15_line)
