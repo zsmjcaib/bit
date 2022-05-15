@@ -19,21 +19,21 @@ def stock_macd(df):
     df["ema5"] = talib.EMA(df['close'], timeperiod=5)
     df["ema10"] = talib.EMA(df['close'], timeperiod=10)
     df["ema20"] = talib.EMA(df['close'], timeperiod=20)
-    # df["short"] = df.iloc[:,9:12].std(axis=1)/df['close']*100
-    # df["mid"] = df.iloc[:,10:13].std(axis=1)/df['close']*100
-    # df["long"] = df.iloc[:,11:14].std(axis=1)/df['close']*100
-    # df["short_ma"] = talib.MA(df['short'],timeperiod=5)
-    # df["mid_ma"] = talib.MA(df['mid'],timeperiod=5)
-    # df["long_ma"] = talib.MA(df['long'],timeperiod=5)
+    df["short"] = df.iloc[:,9:12].std(axis=1)/df['close']*100
+    df["mid"] = df.iloc[:,10:13].std(axis=1)/df['close']*100
+    df["long"] = df.iloc[:,11:14].std(axis=1)/df['close']*100
+    df["short_ma"] = talib.MA(df['short'],timeperiod=5)
+    df["mid_ma"] = talib.MA(df['mid'],timeperiod=5)
+    df["long_ma"] = talib.MA(df['long'],timeperiod=5)
     return df
 
 def read_first_record(path):
     if not os.path.exists(path ):
-        demo = pd.DataFrame(columns=['date','first','15m','1h','15m小转大','1h小转大','flag'])
-        demo.loc[len(demo)] = [ "1997","", "","", "","",""]
+        demo = pd.DataFrame(columns=['date','first','15m','1h','15m小转大','1h小转大','flag','loss'])
+        demo.loc[len(demo)] = [ "1997","", "","", "","","",""]
     else:
-        demo = pd.DataFrame(columns=['date', 'first', '15m', '1h', '15m小转大', '1h小转大', 'flag'])
-        demo.loc[len(demo)] = ["1997", "", "", "", "", "", ""]
+        demo = pd.DataFrame(columns=['date', 'first', '15m', '1h', '15m小转大', '1h小转大', 'flag','loss'])
+        demo.loc[len(demo)] = ["1997", "", "", "", "", "", "",""]
         # demo = pd.read_csv(path )
     return demo
 
@@ -45,3 +45,11 @@ def read_buy_record(path):
         demo = pd.DataFrame(columns=['date', 'mark_price', 'buy_price', 'mark_sell', 'sell_price', 'net'])
         demo.loc[len(demo)] = ["", "", "", "", "",  "1"]
     return demo
+def comp_loss(normal,line):
+    date = str(line.iat[-1,0])
+    index = normal[normal['date'] == date].index.tolist()[-1]
+    if line['flag'].iloc[-1] == 'down':
+        for i in range(index,len(normal)-1):
+            if normal['ma5'].iloc[i] < normal['close'].iloc[i]:
+                return normal['open'].iloc[i]
+    return 0
