@@ -8,7 +8,7 @@ from utils.strategy_buy import strategy_test
 from chart import draw_kline
 import numpy as np
 from utils.small_to_large import check
-from utils.util import read_first_record, read_buy_record, comp_loss
+from utils.util import read_first_record, read_buy_record, comp_loss, chaos
 import time
 
 def chart_test(df,deal,line):
@@ -195,11 +195,11 @@ def test(type,api):
         #
         # test_4h_line = find_line(test_4h_deal , test_4h_line)
 
-        if str(test_15.iat[-1,0]) == '2021-09-24 14:15:00':
+        if str(test_15.iat[-1,0]) == '2021-07-19 17:30:00':
             print(1)
-        if str(test_15.iat[-1,0]) == '2021-06-24 11:45:00':
+        if str(test_15.iat[-1,0]) == '2021-07-19 20:30:00':
             print(1)
-        if str(test_15.iat[-1,0]) == '2021-07-18 00:15:00':
+        if str(test_15.iat[-1,0]) == '2021-07-16 13:00:00':
             print(1)
 
         l,result,mark_price = strategy_test(test_15_simple[-1500:].reset_index(drop=True),test_15[-1500:].reset_index(drop=True),test_15_deal,test_15_line,test_1h,test_1h_deal,
@@ -207,16 +207,26 @@ def test(type,api):
         if  result == 'yes':
             record_first = record_first.append(l, ignore_index=True)
             record_first.iat[-1,0] = str(test_15_line.iat[-1,0])
-        if record_first['flag'].iloc[-1] == 'yes' and  test_15['low'].iloc[-1]< record_first['loss'].iloc[-1]:
+        if record_first['flag'].iloc[-1] == 'yes' and test_15['low'].iloc[-1] < record_first['loss'].iloc[-1] != '':
             record_first['flag'].iloc[-1] = ''
             record_first['loss'].iloc[-1] = ''
         if len(test_15_line) > 3 and len(record_first) > 1 and record_first['flag'].iloc[-1] != 'yes':
-            if test_15['ma5'].iloc[-1] > test_15['ma20'].iloc[-1] and test_15['ema5'].iloc[-1] < test_15['close'].iloc[-1]:
-                loss = comp_loss(test_15,test_15_line)
-                if loss !=0:
-                    print('buy: ' + str(test_15.iat[-1, 0]) + ' price: ' + str(test_15['close'].iloc[-1]) + ' loss: ' + str(loss))
-                    record_first['loss'].iloc[-1] = loss
-                    record_first['flag'].iloc[-1] = 'yes'
+            if test_15['ma5'].iloc[-1] > test_15['ma10'].iloc[-1]>test_15['ma20'].iloc[-1] and test_15['ema5'].iloc[-1] < test_15['close'].iloc[-1]\
+                and (test_15['open'].iloc[-1]<test_15['close'].iloc[-1] or test_15['close'].iloc[-1]> (test_15['open'].iloc[-1]+test_15['close'].iloc[-1])/2):
+                if chaos(test_15_deal,'rise') == False:
+                    loss = comp_loss(test_15,test_15_line)
+                    if loss !=0:
+                        print('buy: ' + str(test_15.iat[-1, 0]) + ' price: ' + str(test_15['close'].iloc[-1]) + ' loss: ' + str(loss))
+                        record_first['loss'].iloc[-1] = loss
+                        record_first['flag'].iloc[-1] = 'yes'
+                else:
+                    if test_15['ma5'].iloc[-1]>test_15['ma10'].iloc[-1]>test_15['ma20'].iloc[-1]>test_15['ma60'].iloc[-1]>test_15['ma120'].iloc[-1]:
+                        loss = comp_loss(test_15, test_15_line)
+                        if loss != 0:
+                            print('buy: ' + str(test_15.iat[-1, 0]) + ' price: ' + str(test_15['close'].iloc[-1]) + ' loss: ' + str(loss) +'多头排列')
+                            record_first['loss'].iloc[-1] = loss
+                            record_first['flag'].iloc[-1] = 'yes'
+
         # if  len(test_15_line)>3 and len(record_first)>0 and record_first['flag'].iloc[-1] != 'yes':
         #     if (str(test_15_line.iat[-4,0]) == record_first.iat[-1,0]) :
         #         print('buy: '+ str(test_15.iat[-1,0])+' price: '+str(test_15['close'].iloc[-1])+' loss: '+ str(test_15_line['key'].iloc[-4]))

@@ -10,6 +10,7 @@ import pandas as pd
 # print(obj_stamp)
 i =0
 l = ['1','4','2']
+a,b=l[0:2]
 print('3' in l)
 l = pd.DataFrame({'15m': '', '1h': '', '15m小转大': '', '1h小转大': ''}, index=[1])
 print(len(l))

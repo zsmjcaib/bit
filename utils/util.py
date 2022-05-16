@@ -1,6 +1,7 @@
 import talib
 import os
 import pandas as pd
+import copy
 def stock_macd(df):
 
     diff, dea, macd = talib.MACD(df["close"],
@@ -52,4 +53,35 @@ def comp_loss(normal,line):
         for i in range(index,len(normal)-1):
             if normal['ma5'].iloc[i] < normal['close'].iloc[i]:
                 return normal['open'].iloc[i]
+    return 0
+
+def chaos(deal,flag):
+    temp = copy.deepcopy(deal[-20:])
+    if flag == 'rise':
+        if temp["temp"].iloc[-1] =='yes' and temp["flag"].iloc[-1] =='min':
+            temp.drop(temp.tail(1).index,inplace=True)
+        max3, min3, max2, min2, _, _, max1, min1 = temp['key'][-9:-1]
+        return judge(min1, max1,min2, max2, min3, max3,'rise')
+    if flag == 'down':
+        min3, max3, min2, max2,_, _,  min1, max1 = temp['key'][-9:-1]
+    return False
+
+    return False
+def judge(min1, max1,min2, max2, min3, max3,flag):
+
+    if flag == 'rise':
+        ratio1 = calcul(min1, max1, min2, max2)
+        ratio2 = calcul(min1, max1, min3, max3)
+        if ratio1>0.6 or ratio2>0.6:
+            return True
+    return False
+
+def calcul(min1, max1,min2, max2):
+    abs1 = abs(max1 - min1)
+    flag_max1 = min(max1 , max2)
+    flag_min1 = max (min1 , min2)
+    if flag_max1>flag_min1:
+        dif = abs(flag_max1 - flag_min1)
+        ratio = dif/abs1
+        return ratio
     return 0
