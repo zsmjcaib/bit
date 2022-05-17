@@ -26,6 +26,7 @@ def stock_macd(df):
     df["short_ma"] = talib.MA(df['short'],timeperiod=5)
     df["mid_ma"] = talib.MA(df['mid'],timeperiod=5)
     df["long_ma"] = talib.MA(df['long'],timeperiod=5)
+    df["vol_ma"] = talib.MA(df['vol'],timeperiod=480)
     return df
 
 def read_first_record(path):
@@ -85,3 +86,13 @@ def calcul(min1, max1,min2, max2):
         ratio = dif/abs1
         return ratio
     return 0
+def launch(normal,flag):
+    l = [-1,-3,-4,-5]
+    if flag == 'rise':
+        for i in range(0,len(l)-1):
+            if normal['ma5'].iloc[l[i]]<normal['ma5'].iloc[l[i+1]] or normal['ma10'].iloc[l[i]]<normal['ma10'].iloc[l[i+1]]\
+                or normal['ma20'].iloc[l[i]]<normal['ma20'].iloc[l[i+1]]:
+                return False
+            else:
+                continue
+    return True

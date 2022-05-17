@@ -8,7 +8,7 @@ from utils.strategy_buy import strategy_test
 from chart import draw_kline
 import numpy as np
 from utils.small_to_large import check
-from utils.util import read_first_record, read_buy_record, comp_loss, chaos
+from utils.util import read_first_record, read_buy_record, comp_loss, chaos, launch
 import time
 
 def chart_test(df,deal,line):
@@ -221,11 +221,12 @@ def test(type,api):
                         record_first['flag'].iloc[-1] = 'yes'
                 else:
                     if test_15['ma5'].iloc[-1]>test_15['ma10'].iloc[-1]>test_15['ma20'].iloc[-1]>test_15['ma60'].iloc[-1]>test_15['ma120'].iloc[-1]:
-                        loss = comp_loss(test_15, test_15_line)
-                        if loss != 0:
-                            print('buy: ' + str(test_15.iat[-1, 0]) + ' price: ' + str(test_15['close'].iloc[-1]) + ' loss: ' + str(loss) +'多头排列')
-                            record_first['loss'].iloc[-1] = loss
-                            record_first['flag'].iloc[-1] = 'yes'
+                        if launch(test_15,'rise'):
+                            loss = comp_loss(test_15, test_15_line)
+                            if loss != 0:
+                                print('buy: ' + str(test_15.iat[-1, 0]) + ' price: ' + str(test_15['close'].iloc[-1]) + ' loss: ' + str(loss) +'多头排列')
+                                record_first['loss'].iloc[-1] = loss
+                                record_first['flag'].iloc[-1] = 'yes'
 
         # if  len(test_15_line)>3 and len(record_first)>0 and record_first['flag'].iloc[-1] != 'yes':
         #     if (str(test_15_line.iat[-4,0]) == record_first.iat[-1,0]) :
