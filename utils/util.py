@@ -96,3 +96,7 @@ def launch(normal,flag):
             else:
                 continue
     return True
+def vol_confirm(normal):
+    if normal[-5:]['vol'].mean() > normal['vol'].iloc[-1]*1.3 or normal[-5:]['vol'].max() >normal['vol'].iloc[-1]*1.8:
+        return True
+    return False

@@ -8,7 +8,7 @@ from utils.strategy_buy import strategy_test
 from chart import draw_kline
 import numpy as np
 from utils.small_to_large import check
-from utils.util import read_first_record, read_buy_record, comp_loss, chaos, launch
+from utils.util import read_first_record, read_buy_record, comp_loss, chaos, launch, vol_confirm
 import time
 
 def chart_test(df,deal,line):
@@ -213,18 +213,18 @@ def test(type,api):
         if len(test_15_line) > 3 and len(record_first) > 1 and record_first['flag'].iloc[-1] != 'yes':
             if test_15['ma5'].iloc[-1] > test_15['ma10'].iloc[-1]>test_15['ma20'].iloc[-1] and test_15['ema5'].iloc[-1] < test_15['close'].iloc[-1]\
                 and (test_15['open'].iloc[-1]<test_15['close'].iloc[-1] or test_15['close'].iloc[-1]> (test_15['open'].iloc[-1]+test_15['close'].iloc[-1])/2):
-                if chaos(test_15_deal,'rise') == False:
+                if chaos(test_15_deal,'rise') == False and test_15['short'].iloc[-1]>0.1:
                     loss = comp_loss(test_15,test_15_line)
                     if loss !=0:
-                        print('buy: ' + str(test_15.iat[-1, 0]) + ' price: ' + str(test_15['close'].iloc[-1]) + ' loss: ' + str(loss))
+                        print('buy: ' + str(test_15.iat[-1, 0]) + ' price: ' + str(test_15['close'].iloc[-1]) + ' loss: ' + str(loss)+' '+str(test_15['short'].iloc[-1]))
                         record_first['loss'].iloc[-1] = loss
                         record_first['flag'].iloc[-1] = 'yes'
                 else:
                     if test_15['ma5'].iloc[-1]>test_15['ma10'].iloc[-1]>test_15['ma20'].iloc[-1]>test_15['ma60'].iloc[-1]>test_15['ma120'].iloc[-1]:
-                        if launch(test_15,'rise'):
+                        if launch(test_15,'rise') and vol_confirm(test_15) and test_15['short'].iloc[-1]>0.1:
                             loss = comp_loss(test_15, test_15_line)
                             if loss != 0:
-                                print('buy: ' + str(test_15.iat[-1, 0]) + ' price: ' + str(test_15['close'].iloc[-1]) + ' loss: ' + str(loss) +'多头排列')
+                                print('buy: ' + str(test_15.iat[-1, 0]) + ' price: ' + str(test_15['close'].iloc[-1]) + ' loss: ' + str(loss) +'多头排列'+' '+str(test_15['short'].iloc[-1]))
                                 record_first['loss'].iloc[-1] = loss
                                 record_first['flag'].iloc[-1] = 'yes'
 
