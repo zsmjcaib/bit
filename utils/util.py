@@ -31,11 +31,11 @@ def stock_macd(df):
 
 def read_first_record(path):
     if not os.path.exists(path ):
-        demo = pd.DataFrame(columns=['date','first','15m','1h','15m小转大','1h小转大','flag','loss'])
-        demo.loc[len(demo)] = [ "1997","", "","", "","","",""]
+        demo = pd.DataFrame(columns=['date','first','15m','1h','15m小转大','1h小转大','flag','loss','point'])
+        demo.loc[len(demo)] = [ "1997","", "","", "","","","",""]
     else:
-        demo = pd.DataFrame(columns=['date', 'first', '15m', '1h', '15m小转大', '1h小转大', 'flag','loss'])
-        demo.loc[len(demo)] = ["1997", "", "", "", "", "", "",""]
+        demo = pd.DataFrame(columns=['date', 'first', '15m', '1h', '15m小转大', '1h小转大', 'flag','loss','point'])
+        demo.loc[len(demo)] = ["1997", "", "", "", "", "", "","",""]
         # demo = pd.read_csv(path )
     return demo
 
@@ -47,10 +47,9 @@ def read_buy_record(path):
         demo = pd.DataFrame(columns=['date', 'mark_price', 'buy_price', 'mark_sell', 'sell_price', 'net'])
         demo.loc[len(demo)] = ["", "", "", "", "",  "1"]
     return demo
-def comp_loss(normal,line):
-    date = str(line.iat[-1,0])
+def comp_loss(normal,date,flag):
     index = normal[normal['date'] == date].index.tolist()[-1]
-    if line['flag'].iloc[-1] == 'down':
+    if flag == 'rise':
         for i in range(index,len(normal)-1):
             if normal['ma5'].iloc[i] < normal['close'].iloc[i]:
                 return normal['open'].iloc[i]
@@ -61,19 +60,20 @@ def chaos(deal,flag):
     if flag == 'rise':
         if temp["temp"].iloc[-1] =='yes' and temp["flag"].iloc[-1] =='min':
             temp.drop(temp.tail(1).index,inplace=True)
-        max3, min3, max2, min2, _, _, max1, min1 = temp['key'][-9:-1]
-        return judge(min1, max1,min2, max2, min3, max3,'rise')
+        max4,min4,max3, min3, max2, min2, _, _, max1, min1 = temp['key'][-11:-1]
+        return judge(min1, max1,min2, max2, min3, max3,min4,max4,'rise')
     if flag == 'down':
-        min3, max3, min2, max2,_, _,  min1, max1 = temp['key'][-9:-1]
+        min4,max4,min3, max3, min2, max2,_, _,  min1, max1 = temp['key'][-11:-1]
     return False
 
-    return False
-def judge(min1, max1,min2, max2, min3, max3,flag):
+def judge(min1, max1,min2, max2, min3, max3,min4,max4,flag):
 
     if flag == 'rise':
         ratio1 = calcul(min1, max1, min2, max2)
         ratio2 = calcul(min1, max1, min3, max3)
-        if ratio1>0.6 or ratio2>0.6:
+        ratio3 = calcul(min1, max1, min4, max4)
+
+        if ratio1>0.6 or ratio2>0.6 or ratio3>0.6 :
             return True
     return False
 
@@ -87,6 +87,7 @@ def calcul(min1, max1,min2, max2):
         return ratio
     return 0
 def launch(normal,flag):
+    #持续性检验
     l = [-1,-3,-4,-5]
     if flag == 'rise':
         for i in range(0,len(l)-1):
@@ -97,6 +98,6 @@ def launch(normal,flag):
                 continue
     return True
 def vol_confirm(normal):
-    if normal[-5:]['vol'].mean() > normal['vol'].iloc[-1]*1.3 or normal[-5:]['vol'].max() >normal['vol'].iloc[-1]*1.8:
+    if normal[-5:]['vol'].mean() > normal['vol_ma'].iloc[-1]*1.3 or normal[-5:]['vol'].max() >normal['vol_ma'].iloc[-1]*1.8:
         return True
     return False

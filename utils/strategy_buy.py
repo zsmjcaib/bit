@@ -391,22 +391,22 @@ def first_test(normal,deal,line,index,level):
                         line.iat[-1, 5] = 'yes'
                         # print('first buy :' + str(line["date"].iloc[-1]) + ' ' + str_1 + str_2 + str_3 + str_4 + str_5 + str_6 + str_7+' '+str(normal["date"].iloc[-1]))
                         result = 'first buy :' + str(line["date"].iloc[-1]) + ' ' + str_1 + str_2 + str_3 + str_4 + str_5 + str_6 + str_7+' '+str(normal["date"].iloc[-1])
-                        return flag, line["key"].iloc[-1],result,l_to_h,''
+                        return flag, line["key"].iloc[-1],result,l_to_h,'',line["key"].iloc[-1]
 
                 if flag > 1 :
                     # print('first buy :' + str(line["date"].iloc[-1]) + ' ' + str_1 + str_2 + str_3 +' '+str(normal["date"].iloc[-1]) )
                     result = 'first buy :' + str(line["date"].iloc[-1]) + ' ' + str_1 + str_2 + str_3 +' '+str(normal["date"].iloc[-1])
-                    return flag, line["key"].iloc[-1],result,'no',''
+                    return flag, line["key"].iloc[-1],result,'no','',''
                 else:
                     # print('first buy :' + str( line["date"].iloc[-1]) + ' ' + str_1 + str_2 + str_3 )
                     result = '1h :' + str( line["date"].iloc[-1]) + ' ' + str_1 + str_2 + str_3
-                    return flag, 0,'','no',''
-    return 0, 0,'','no','no'
+                    return flag, 0,'','no','',''
+    return 0, 0,'','no','no',''
 
 
 
 def strategy_test(test_15_simple,test_15,test_15_deal,test_15_line,test_1h,test_1h_deal,test_1h_line,test_4h,test_4h_deal,test_4h_line):
-    l = pd.DataFrame({'date':'','first':'yes','15m':'','1h':'','15m小转大':'','1h小转大':''}, index=[1])
+    l = pd.DataFrame({'date':'','first':'yes','15m':'','1h':'','15m小转大':'','1h小转大':'','point':''}, index=[1])
     if  test_15_line['is_test'].iloc[-1]!='yes':
         index = test_15_simple[test_15_simple["date"] == test_15_line.iloc[-1]["date"]].index.tolist()[0]
         if index == len(test_15_simple) - 3:
@@ -429,13 +429,13 @@ def strategy_test(test_15_simple,test_15,test_15_deal,test_15_line,test_1h,test_
     return l, 'no',0
 
 def calculate(low,low_deal,low_line,test_1h,high,test_1h_line):
-    l = pd.DataFrame({'date':'','first':'yes','15m':'','1h':'','15m小转大':'','1h小转大':''}, index=[1])
+    l = pd.DataFrame({'date':'','first':'yes','15m':'','1h':'','15m小转大':'','1h小转大':'','point':''}, index=[1])
     result = 'no'
     mark_price =0
     if low_line.iat[-1, 7] != 'yes':
-        h_flag, h_mark_price, h_result, h_l_to_h,mark = first_test(test_1h, high, test_1h_line, -1, ['1h','less_1h'])
+        h_flag, h_mark_price, h_result, h_l_to_h,mark,h_point = first_test(test_1h, high, test_1h_line, -1, ['1h','less_1h'])
         if mark!='no':
-            l_flag, l_mark_price, l_result, l_l_to_h,_ = first_test(low, low_deal, low_line, -1, ['15m','less_15m'])
+            l_flag, l_mark_price, l_result, l_l_to_h,_,l_point = first_test(low, low_deal, low_line, -1, ['15m','less_15m'])
             low_line.iat[-1, 7] = 'yes'
             if h_flag + l_flag > 4 :
                 print(h_result + ' ' + l_result)
@@ -443,16 +443,28 @@ def calculate(low,low_deal,low_line,test_1h,high,test_1h_line):
                 l.iat[-1,3]='y'
                 l.iat[-1,2]='y'
                 result = 'yes'
+                if l_point!='':
+                    l.iat[-1, 6] = l_point
+                elif h_point!='':
+                    l.iat[-1, 6] = h_point
+
             if h_l_to_h == 'yes':
                 print('1h小转大'+ h_result + ' ' + l_result)
                 mark_price = l_mark_price
                 l.iat[-1,5]='y'
                 result = 'yes'
-
+                if l_point!='':
+                    l.iat[-1, 6] = l_point
+                elif h_point!='':
+                    l.iat[-1, 6] = h_point
             if l_l_to_h == 'yes':
                 print('15m小转大： '+h_result + ' ' + l_result)
                 mark_price = l_mark_price
                 l.iat[-1,4]='y'
                 result = 'yes'
+                if l_point!='':
+                    l.iat[-1, 6] = l_point
+                elif h_point!='':
+                    l.iat[-1, 6] = h_point
 
     return l,result, mark_price

@@ -126,7 +126,7 @@ def test(type,api):
 
 
 
-    test_15 = real_data[:3000]
+    test_15 = real_data[17000:20000]
     test_15 = test_15.reset_index(drop=True)
     test_1h = import_csv(test_15, '1H','','init')
     test_4h = import_csv(test_15, '4H','','init')
@@ -162,7 +162,7 @@ def test(type,api):
     b =time.time()
 
 
-    for i, row in real_data[3000:].iterrows():
+    for i, row in real_data[20000:].iterrows():
         if i%500 ==0:
             print(test_15.iat[-1,0])
             grid_15_chart = chart_test(test_15_simple, test_15_deal, test_15_line)
@@ -195,11 +195,11 @@ def test(type,api):
         #
         # test_4h_line = find_line(test_4h_deal , test_4h_line)
 
-        if str(test_15.iat[-1,0]) == '2021-07-19 17:30:00':
+        if str(test_15.iat[-1,0]) == '2021-11-27 14:00:00':#震荡未识别 2021-12-18 21:30:00#为何买入 2022-04-25 11:45:00止损价 2022-04-30 00:00:00
             print(1)
-        if str(test_15.iat[-1,0]) == '2021-07-19 20:30:00':
+        if str(test_15.iat[-1,0]) == '2021-11-28 06:15:00':#震荡未识别
             print(1)
-        if str(test_15.iat[-1,0]) == '2021-07-16 13:00:00':
+        if str(test_15.iat[-1,0]) == '2021-12-11 04:45:00':#震荡未识别
             print(1)
 
         l,result,mark_price = strategy_test(test_15_simple[-1500:].reset_index(drop=True),test_15[-1500:].reset_index(drop=True),test_15_deal,test_15_line,test_1h,test_1h_deal,
@@ -207,22 +207,23 @@ def test(type,api):
         if  result == 'yes':
             record_first = record_first.append(l, ignore_index=True)
             record_first.iat[-1,0] = str(test_15_line.iat[-1,0])
-        if record_first['flag'].iloc[-1] == 'yes' and test_15['low'].iloc[-1] < record_first['loss'].iloc[-1] != '':
+        if record_first['flag'].iloc[-1] == 'yes' and record_first['point'].iloc[-1]<test_15['low'].iloc[-1] < record_first['loss'].iloc[-1] != '':
             record_first['flag'].iloc[-1] = ''
             record_first['loss'].iloc[-1] = ''
-        if len(test_15_line) > 3 and len(record_first) > 1 and record_first['flag'].iloc[-1] != 'yes':
+        if len(test_15_line) > 3 and len(record_first) > 1 and record_first['flag'].iloc[-1] != 'yes' and record_first['point'].iloc[-1]<test_15['low'].iloc[-1]:
             if test_15['ma5'].iloc[-1] > test_15['ma10'].iloc[-1]>test_15['ma20'].iloc[-1] and test_15['ema5'].iloc[-1] < test_15['close'].iloc[-1]\
                 and (test_15['open'].iloc[-1]<test_15['close'].iloc[-1] or test_15['close'].iloc[-1]> (test_15['open'].iloc[-1]+test_15['close'].iloc[-1])/2):
-                if chaos(test_15_deal,'rise') == False and test_15['short'].iloc[-1]>0.1:
-                    loss = comp_loss(test_15,test_15_line)
+                if chaos(test_15_deal,'rise') == False :
+                    loss = comp_loss(test_15,record_first.iat[-1,0],'rise')
                     if loss !=0:
                         print('buy: ' + str(test_15.iat[-1, 0]) + ' price: ' + str(test_15['close'].iloc[-1]) + ' loss: ' + str(loss)+' '+str(test_15['short'].iloc[-1]))
                         record_first['loss'].iloc[-1] = loss
                         record_first['flag'].iloc[-1] = 'yes'
                 else:
-                    if test_15['ma5'].iloc[-1]>test_15['ma10'].iloc[-1]>test_15['ma20'].iloc[-1]>test_15['ma60'].iloc[-1]>test_15['ma120'].iloc[-1]:
+                    if test_15['ma5'].iloc[-1]>test_15['ma10'].iloc[-1]>test_15['ma20'].iloc[-1] \
+                            and test_15['ma5'].iloc[-1]>test_15['ma60'].iloc[-1] and test_15['ma5'].iloc[-1]>test_15['ma120'].iloc[-1]:
                         if launch(test_15,'rise') and vol_confirm(test_15) and test_15['short'].iloc[-1]>0.1:
-                            loss = comp_loss(test_15, test_15_line)
+                            loss = comp_loss(test_15,record_first.iat[-1,0],'rise')
                             if loss != 0:
                                 print('buy: ' + str(test_15.iat[-1, 0]) + ' price: ' + str(test_15['close'].iloc[-1]) + ' loss: ' + str(loss) +'多头排列'+' '+str(test_15['short'].iloc[-1]))
                                 record_first['loss'].iloc[-1] = loss
