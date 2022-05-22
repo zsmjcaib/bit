@@ -101,3 +101,21 @@ def vol_confirm(normal):
     if normal[-5:]['vol'].mean() > normal['vol_ma'].iloc[-1]*1.3 or normal[-5:]['vol'].max() >normal['vol_ma'].iloc[-1]*1.8:
         return True
     return False
+
+def grid(deal,flag):
+    temp = copy.deepcopy(deal[-20:])
+    if flag == 'rise':
+        if temp["temp"].iloc[-1] =='yes' and temp["flag"].iloc[-1] =='min':
+            temp.drop(temp.tail(1).index,inplace=True)
+        max4, min4, max3, min3, max2, min2, max1, min1 = temp['key'][-9:-1]
+        return find_gird(max4, min4, max3, min3, max2, min2, max1, min1)
+def find_gird(max4, min4, max3, min3, max2, min2, max1, min1):
+    abs1 = abs(max1 - min1)
+    abs2 = abs(max2 - min2)
+    abs3 = abs(max3 - min3)
+    abs4 = abs(max4 - min4)
+    l = [abs1,abs2,abs3,abs4]
+    l.sort(reverse = True)
+    gird =l[1]/4
+    zreo = abs(max1 + min1)/2
+    return zreo,gird

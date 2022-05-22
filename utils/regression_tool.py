@@ -8,7 +8,7 @@ from utils.strategy_buy import strategy_test
 from chart import draw_kline
 import numpy as np
 from utils.small_to_large import check
-from utils.util import read_first_record, read_buy_record, comp_loss, chaos, launch, vol_confirm
+from utils.util import read_first_record, read_buy_record, comp_loss, chaos, launch, vol_confirm, grid
 import time
 
 def chart_test(df,deal,line):
@@ -126,7 +126,7 @@ def test(type,api):
 
 
 
-    test_15 = real_data[17000:20000]
+    test_15 = real_data[:4000]
     test_15 = test_15.reset_index(drop=True)
     test_1h = import_csv(test_15, '1H','','init')
     test_4h = import_csv(test_15, '4H','','init')
@@ -162,7 +162,7 @@ def test(type,api):
     b =time.time()
 
 
-    for i, row in real_data[20000:].iterrows():
+    for i, row in real_data[4000:].iterrows():
         if i%500 ==0:
             print(test_15.iat[-1,0])
             grid_15_chart = chart_test(test_15_simple, test_15_deal, test_15_line)
@@ -195,7 +195,7 @@ def test(type,api):
         #
         # test_4h_line = find_line(test_4h_deal , test_4h_line)
 
-        if str(test_15.iat[-1,0]) == '2021-11-27 14:00:00':#震荡未识别 2021-12-18 21:30:00#为何买入 2022-04-25 11:45:00止损价 2022-04-30 00:00:00
+        if str(test_15.iat[-1,0]) == '2021-06-08 18:00:00':#震荡未识别 2021-12-18 21:30:00#为何买入 2022-04-25 11:45:00止损价 2022-04-30 00:00:00
             print(1)
         if str(test_15.iat[-1,0]) == '2021-11-28 06:15:00':#震荡未识别
             print(1)
@@ -207,11 +207,14 @@ def test(type,api):
         if  result == 'yes':
             record_first = record_first.append(l, ignore_index=True)
             record_first.iat[-1,0] = str(test_15_line.iat[-1,0])
+        if len(record_first) > 1 and record_first['point'].iloc[-1]>test_15['low'].iloc[-1]:
+            record_first['flag'].iloc[-1] = 'no'
         if record_first['flag'].iloc[-1] == 'yes' and record_first['point'].iloc[-1]<test_15['low'].iloc[-1] < record_first['loss'].iloc[-1] != '':
             record_first['flag'].iloc[-1] = ''
             record_first['loss'].iloc[-1] = ''
-        if len(test_15_line) > 3 and len(record_first) > 1 and record_first['flag'].iloc[-1] != 'yes' and record_first['point'].iloc[-1]<test_15['low'].iloc[-1]:
-            if test_15['ma5'].iloc[-1] > test_15['ma10'].iloc[-1]>test_15['ma20'].iloc[-1] and test_15['ema5'].iloc[-1] < test_15['close'].iloc[-1]\
+        if len(test_15_line) > 3 and len(record_first) > 1 and record_first['flag'].iloc[-1] != 'yes' and test_15['close'].iloc[-1]>test_15['close'].iloc[-20]\
+                and test_15['close'].iloc[-1]>test_15['close'].iloc[-19] and record_first['flag'].iloc[-1] != 'no' and record_first['point'].iloc[-1]<test_15['low'].iloc[-1]:
+            if (test_15['ma5'].iloc[-1] > test_15['ma10'].iloc[-1] or test_15['close'].iloc[-1]>test_15['close'].iloc[-5]) and test_15['ema5'].iloc[-1] < test_15['close'].iloc[-1]\
                 and (test_15['open'].iloc[-1]<test_15['close'].iloc[-1] or test_15['close'].iloc[-1]> (test_15['open'].iloc[-1]+test_15['close'].iloc[-1])/2):
                 if chaos(test_15_deal,'rise') == False :
                     loss = comp_loss(test_15,record_first.iat[-1,0],'rise')
@@ -228,7 +231,9 @@ def test(type,api):
                                 print('buy: ' + str(test_15.iat[-1, 0]) + ' price: ' + str(test_15['close'].iloc[-1]) + ' loss: ' + str(loss) +'多头排列'+' '+str(test_15['short'].iloc[-1]))
                                 record_first['loss'].iloc[-1] = loss
                                 record_first['flag'].iloc[-1] = 'yes'
-
+                    else:
+                        zreo, gird = grid(test_15_deal, 'rise')
+                        print('网格: '+ str(test_15.iat[-1, 0]) +' 点位: '+str(zreo)+' 密度： '+str(gird))
         # if  len(test_15_line)>3 and len(record_first)>0 and record_first['flag'].iloc[-1] != 'yes':
         #     if (str(test_15_line.iat[-4,0]) == record_first.iat[-1,0]) :
         #         print('buy: '+ str(test_15.iat[-1,0])+' price: '+str(test_15['close'].iloc[-1])+' loss: '+ str(test_15_line['key'].iloc[-4]))
