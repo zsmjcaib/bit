@@ -126,7 +126,7 @@ def test(type,api):
 
 
 
-    test_15 = real_data[:4000]
+    test_15 = real_data[:3000]
     test_15 = test_15.reset_index(drop=True)
     test_1h = import_csv(test_15, '1H','','init')
     test_4h = import_csv(test_15, '4H','','init')
@@ -162,7 +162,7 @@ def test(type,api):
     b =time.time()
 
 
-    for i, row in real_data[4000:].iterrows():
+    for i, row in real_data[3000:].iterrows():
         if i%500 ==0:
             print(test_15.iat[-1,0])
             grid_15_chart = chart_test(test_15_simple, test_15_deal, test_15_line)
@@ -231,9 +231,19 @@ def test(type,api):
                                 print('buy: ' + str(test_15.iat[-1, 0]) + ' price: ' + str(test_15['close'].iloc[-1]) + ' loss: ' + str(loss) +'多头排列'+' '+str(test_15['short'].iloc[-1]))
                                 record_first['loss'].iloc[-1] = loss
                                 record_first['flag'].iloc[-1] = 'yes'
-                    else:
-                        zreo, gird = grid(test_15_deal, 'rise')
-                        print('网格: '+ str(test_15.iat[-1, 0]) +' 点位: '+str(zreo)+' 密度： '+str(gird))
+                    # else:
+                    #     sl, gird = grid(test_15_deal, 'rise')
+                    #     if sl/test_15['close'].iloc[-1]>0.005 and record_first['gird'].iloc[-1]!=gird:
+                    #         print('网格: '+ str(test_15.iat[-1, 0]) +' 点位:'+str(gird)+' 密度:'+str(sl)+' '+ str(gird+sl)+' '+ str(gird+2*sl)+' '+ str(gird-sl)+' '+ str(gird-2*sl))
+                    #         record_first['gird'].iloc[-1] = gird
+        if len(test_15_line) > 3 and len(record_first) > 1 and record_first['flag'].iloc[-1] != 'yes' and\
+                test_15['close'].iloc[-1] > test_15['close'].iloc[-20] \
+                and test_15['close'].iloc[-1] > test_15['close'].iloc[-19] and record_first['flag'].iloc[-1] != 'no':
+                sl, gird = grid(test_15_deal, 'rise')
+                if sl / test_15['close'].iloc[-1] > 0.005 and record_first['gird'].iloc[-1] != gird:
+                    print('网格: ' + str(test_15.iat[-1, 0]) + ' 点位:' + str(gird) + ' 密度:' + str(sl) + ' ' + str(
+                        gird + sl) + ' ' + str(gird + 2 * sl) + ' ' + str(gird - sl) + ' ' + str(gird - 2 * sl))
+                    record_first['gird'].iloc[-1] = gird
         # if  len(test_15_line)>3 and len(record_first)>0 and record_first['flag'].iloc[-1] != 'yes':
         #     if (str(test_15_line.iat[-4,0]) == record_first.iat[-1,0]) :
         #         print('buy: '+ str(test_15.iat[-1,0])+' price: '+str(test_15['close'].iloc[-1])+' loss: '+ str(test_15_line['key'].iloc[-4]))
