@@ -101,7 +101,7 @@ def __deal_temp(df, df_point):
                 new = pd.DataFrame({"date": df["date"].iloc[-1], "key":df['low'].iloc[-1], "flag": "min", "temp": "yes"},index=[1])
                 df_point = df_point.append(new, ignore_index=True)
             #找最后一点
-            else:
+            elif index+1>len(df):
                 i = df['high'][index+1:].idxmax()
                 new = pd.DataFrame({"date": df["date"].iloc[i], "key":df['high'].iloc[i], "flag": "max", "temp": "yes"},index=[1])
                 df_point = df_point.append(new, ignore_index=True)
@@ -111,7 +111,7 @@ def __deal_temp(df, df_point):
                 new = pd.DataFrame({"date": df["date"].iloc[-1], "key":df['high'].iloc[-1], "flag": "max", "temp": "yes"},index=[1])
                 df_point = df_point.append(new, ignore_index=True)
             #找最后一点
-            else:
+            elif index+1>len(df):
                 i = df['low'][index+1:].idxmin()
                 new = pd.DataFrame({"date": df["date"].iloc[i], "key":df['low'].iloc[i], "flag": "min", "temp": "yes"},index=[1])
                 df_point = df_point.append(new, ignore_index=True)

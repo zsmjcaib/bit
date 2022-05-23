@@ -170,7 +170,7 @@ def test(type,api):
             grid_1h_chart = chart_test(test_1h_simple, test_1h_deal, test_1h_line)
             grid_1h_chart.render(api['test_' + str(type)] + '1h_' + 'last' + ".html")
             a =time.time()
-            print(b-a)
+            # print(b-a)
             b=time.time()
         # if i == 4307:
             print(i)
@@ -237,8 +237,7 @@ def test(type,api):
                     #         print('网格: '+ str(test_15.iat[-1, 0]) +' 点位:'+str(gird)+' 密度:'+str(sl)+' '+ str(gird+sl)+' '+ str(gird+2*sl)+' '+ str(gird-sl)+' '+ str(gird-2*sl))
                     #         record_first['gird'].iloc[-1] = gird
         if len(test_15_line) > 3 and len(record_first) > 1 and record_first['flag'].iloc[-1] != 'yes' and\
-                test_15['close'].iloc[-1] > test_15['close'].iloc[-20] \
-                and test_15['close'].iloc[-1] > test_15['close'].iloc[-19] and record_first['flag'].iloc[-1] != 'no':
+                 chaos(test_15_deal,'rise') == True and record_first['flag'].iloc[-1] != 'no' and test_15_deal["flag"].iloc[-1] =='max':
                 sl, gird = grid(test_15_deal, 'rise')
                 if sl / test_15['close'].iloc[-1] > 0.005 and record_first['gird'].iloc[-1] != gird:
                     print('网格: ' + str(test_15.iat[-1, 0]) + ' 点位:' + str(gird) + ' 密度:' + str(sl) + ' ' + str(
