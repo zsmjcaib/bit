@@ -375,58 +375,6 @@ def  __last(df, df_line,small_date,first_date,second_date,small ):
 
 
 
-
-
-            # # 找高点
-            # key = df["key"].iloc[index:].max()
-            # key_index = df[df["key"] == key].index.tolist()[-1]
-            # df_line.loc[len(df_line)] = [df.iat[key_index, 0], key, "rise", "temp", "","","",""]
-            # key_index += 3
-            # # 最后低点
-            # if (key_index < len(df)):
-            #     key = df["key"].iloc[key_index:].min()
-            #     #是最低点
-            #     if key == df["key"].iloc[key_index-2:].min():
-            #         key_index = df[df["key"] == key].index.tolist()[-1]
-            #         df_line.loc[len(df_line)] = [df.iat[key_index, 0], key, "down", "temp", "","","",""]
-            #
-            # # 最后一笔创新低，更新线段
-            # elif df["key"].iloc[-1] < df_line['key'].iloc[df_line[df_line['flag'] == 'down'].index.tolist()[-1]]:
-            #     df_line.drop(df_line.tail(2).index, inplace=True)
-            #     df_line.loc[len(df_line)] = [df.iat[-1, 0], df.iat[-1, 1], "down", "temp", "", "", "", ""]
-
-        # 4月12日前版本
-        # while i <len(df):
-        #     if df_line.iloc[-1]["flag"] == "rise" :
-        #         if df.iloc[i]["key"] >df_line.iloc[-1]["key"]:
-        #             #更新高点
-        #             df_line.iat[-1,0] = df.iloc[i]["date"]
-        #             df_line.iat[-1, 1] = df.iloc[i]["key"]
-        #             df_line.iat[-1, 3] = "temp"
-        #             index = i
-        #
-        #         elif i>index+2:
-        #             #向下一段
-        #             if df.iloc[i]["key"] <df.iloc[index+1]["key"]:
-        #                 df_line.loc[len(df_line)] = [df.iat[i, 0], df.iloc[i]["key"], "down", "temp","","","",""]
-        #                 index = i
-        #
-        #         i+=1
-        #     elif df_line.iloc[-1]["flag"] == "down" :
-        #         if df.iloc[i]["key"] <df_line.iloc[-1]["key"]:
-        #             #更新低点
-        #             df_line.iat[-1,0] = df.iloc[i]["date"]
-        #             df_line.iat[-1, 1] = df.iloc[i]["key"]
-        #             df_line.iat[-1, 3] = "temp"
-        #             index = i
-        #
-        #         elif i>index+2:
-        #             #向上一段
-        #             if df.iloc[i]["key"] >df.iloc[index+1]["key"]:
-        #                 df_line.loc[len(df_line)] = [df.iat[i, 0], df.iloc[i]["key"], "rise", "temp","","","",""]
-        #                 index = i
-        #         i+=1
-
     if small_date == df_line["date"].iloc[-1] :
         df_line.iat[-1,4]=small
         # print("small in :" + str(df_line.iloc[-1]["date"]))

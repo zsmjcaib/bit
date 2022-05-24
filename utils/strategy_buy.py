@@ -1,28 +1,9 @@
 import pandas as pd
 import datetime
 
-def judge_piont(l_simple,h_line,index):
-    i =index
-    # 最后不能太无力
-    if i ==-3:
-        dif=0
-    else:
-        dif=1
-    if (l_simple["close"].iloc[i] <= l_simple["close"].iloc[i+2+dif] or l_simple["close"].iloc[i+2+dif] >=l_simple["open"].iloc[i]) \
-            and (l_simple["high"].iloc[i+2+dif] > l_simple["high"].iloc[i+1+dif] or l_simple["close"].iloc[i+2+dif] >l_simple["high"].iloc[i]
-            or l_simple["close"].iloc[i+2+dif] > (l_simple["high"].iloc[i] + l_simple["close"].iloc[i]) / 2) \
-            and l_simple.iat[i-1, 0] + datetime.timedelta(minutes=-60) <= h_line.iat[-1, 0] <l_simple.iat[i+2+dif, 0] + datetime.timedelta(minutes=60)\
-            and h_line['flag'].iloc[-1] == 'down':
-        return True
-    elif (l_simple["close"].iloc[i] >= l_simple["close"].iloc[i+2+dif] or l_simple["close"].iloc[i+2+dif] <=l_simple["open"].iloc[i]) \
-            and (l_simple["low"].iloc[i+2+dif] < l_simple["low"].iloc[i+1+dif] or l_simple["close"].iloc[i+2+dif] <l_simple["low"].iloc[i]
-            or l_simple["close"].iloc[i+2+dif] < (l_simple["low"].iloc[i] + l_simple["close"].iloc[i]) / 2) \
-            and l_simple.iat[i-1, 0] + datetime.timedelta(minutes=-60) <= h_line.iat[-1, 0] <l_simple.iat[i+2+dif, 0] + datetime.timedelta(minutes=60)\
-            and h_line['flag'].iloc[-1] == 'down':
-        return True
 
-    return False
 # (test_15["open"].iloc[-1] < test_15_line['key'].iloc[-1] and test_15["close"].iloc[-1] <test_15_line['key'].iloc[-1] and test_15_line["flag"].iloc[-1] == 'rise'))\
+from utils.util import judge_piont
 
 
 def additional_piont(test_15,test_15_line,test_1h_line):
@@ -438,7 +419,7 @@ def calculate(low,low_deal,low_line,test_1h,high,test_1h_line):
             l_flag, l_mark_price, l_result, l_l_to_h,_,l_point = first_test(low, low_deal, low_line, -1, ['15m','less_15m'])
             low_line.iat[-1, 7] = 'yes'
             if h_flag + l_flag > 4 :
-                print(h_result + ' ' + l_result)
+                # print(h_result + ' ' + l_result)
                 mark_price = l_mark_price
                 l.iat[-1,3]='y'
                 l.iat[-1,2]='y'
@@ -449,7 +430,7 @@ def calculate(low,low_deal,low_line,test_1h,high,test_1h_line):
                     l.iat[-1, 6] = h_point
 
             if h_l_to_h == 'yes':
-                print('1h小转大'+ h_result + ' ' + l_result)
+                # print('1h小转大'+ h_result + ' ' + l_result)
                 mark_price = l_mark_price
                 l.iat[-1,5]='y'
                 result = 'yes'
@@ -458,7 +439,7 @@ def calculate(low,low_deal,low_line,test_1h,high,test_1h_line):
                 elif h_point!='':
                     l.iat[-1, 6] = h_point
             if l_l_to_h == 'yes':
-                print('15m小转大： '+h_result + ' ' + l_result)
+                # print('15m小转大： '+h_result + ' ' + l_result)
                 mark_price = l_mark_price
                 l.iat[-1,4]='y'
                 result = 'yes'
