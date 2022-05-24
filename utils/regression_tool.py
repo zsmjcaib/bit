@@ -1,6 +1,8 @@
 import pandas as pd
 import talib
 import os
+
+from utils.long_to_gird import long_to_gird_test
 from utils.point import simpleTrend
 from utils.deal import find_point
 from utils.line import find_line
@@ -8,7 +10,7 @@ from utils.strategy_buy import strategy_test
 from chart import draw_kline
 import numpy as np
 from utils.small_to_large import check
-from utils.util import read_first_record, read_buy_record, comp_loss, chaos, launch, vol_confirm, grid
+from utils.util import read_first_record, read_buy_record, comp_loss, chaos, launch, vol_confirm, grid, judge_buy
 import time
 
 def chart_test(df,deal,line):
@@ -212,30 +214,12 @@ def test(type,api):
         if record_first['flag'].iloc[-1] == 'yes' and record_first['point'].iloc[-1]<test_15['low'].iloc[-1] < record_first['loss'].iloc[-1] != '':
             record_first['flag'].iloc[-1] = ''
             record_first['loss'].iloc[-1] = ''
-        if len(test_15_line) > 3 and len(record_first) > 1 and record_first['flag'].iloc[-1] != 'yes' and test_15['close'].iloc[-1]>test_15['close'].iloc[-20]\
-                and test_15['close'].iloc[-1]>test_15['close'].iloc[-19] and record_first['flag'].iloc[-1] != 'no' and record_first['point'].iloc[-1]<test_15['low'].iloc[-1]:
-            if (test_15['ma5'].iloc[-1] > test_15['ma10'].iloc[-1] or test_15['close'].iloc[-1]>test_15['close'].iloc[-5]) and test_15['ema5'].iloc[-1] < test_15['close'].iloc[-1]\
-                and (test_15['open'].iloc[-1]<test_15['close'].iloc[-1] or test_15['close'].iloc[-1]> (test_15['open'].iloc[-1]+test_15['close'].iloc[-1])/2):
-                if chaos(test_15_deal,'rise') == False :
-                    loss = comp_loss(test_15,record_first.iat[-1,0],'rise')
-                    if loss !=0:
-                        print('buy: ' + str(test_15.iat[-1, 0]) + ' price: ' + str(test_15['close'].iloc[-1]) + ' loss: ' + str(loss)+' '+str(test_15['short'].iloc[-1]))
-                        record_first['loss'].iloc[-1] = loss
-                        record_first['flag'].iloc[-1] = 'yes'
-                else:
-                    if test_15['ma5'].iloc[-1]>test_15['ma10'].iloc[-1]>test_15['ma20'].iloc[-1] \
-                            and test_15['ma5'].iloc[-1]>test_15['ma60'].iloc[-1] and test_15['ma5'].iloc[-1]>test_15['ma120'].iloc[-1]:
-                        if launch(test_15,'rise') and vol_confirm(test_15) and test_15['short'].iloc[-1]>0.1:
-                            loss = comp_loss(test_15,record_first.iat[-1,0],'rise')
-                            if loss != 0:
-                                print('buy: ' + str(test_15.iat[-1, 0]) + ' price: ' + str(test_15['close'].iloc[-1]) + ' loss: ' + str(loss) +'多头排列'+' '+str(test_15['short'].iloc[-1]))
-                                record_first['loss'].iloc[-1] = loss
-                                record_first['flag'].iloc[-1] = 'yes'
-                    # else:
-                    #     sl, gird = grid(test_15_deal, 'rise')
-                    #     if sl/test_15['close'].iloc[-1]>0.005 and record_first['gird'].iloc[-1]!=gird:
-                    #         print('网格: '+ str(test_15.iat[-1, 0]) +' 点位:'+str(gird)+' 密度:'+str(sl)+' '+ str(gird+sl)+' '+ str(gird+2*sl)+' '+ str(gird-sl)+' '+ str(gird-2*sl))
-                    #         record_first['gird'].iloc[-1] = gird
+        judge_buy(test_15_line,record_first,test_15,test_15_deal)
+        long_to_gird_test(test_15_simple[-1500:].reset_index(drop=True),test_15[-1500:].reset_index(drop=True),test_15_deal,test_15_line,test_1h_line,record_first)
+        if record_first['flag'].iloc[-1] == 'yes' and test_15['close'].iloc[-1] < test_15['close'].iloc[-19] :
+            print('准备网格 '+str(test_15.iat[-1, 0]) )
+
+
         if len(test_15_line) > 3 and len(record_first) > 1 and record_first['flag'].iloc[-1] != 'yes' and\
                 test_15['close'].iloc[-1] > test_15['close'].iloc[-20] \
                 and test_15['close'].iloc[-1] > test_15['close'].iloc[-19] and record_first['flag'].iloc[-1] != 'no':
@@ -244,13 +228,6 @@ def test(type,api):
                     print('网格: ' + str(test_15.iat[-1, 0]) + ' 点位:' + str(gird) + ' 密度:' + str(sl) + ' ' + str(
                         gird + sl) + ' ' + str(gird + 2 * sl) + ' ' + str(gird - sl) + ' ' + str(gird - 2 * sl))
                     record_first['gird'].iloc[-1] = gird
-        # if  len(test_15_line)>3 and len(record_first)>0 and record_first['flag'].iloc[-1] != 'yes':
-        #     if (str(test_15_line.iat[-4,0]) == record_first.iat[-1,0]) :
-        #         print('buy: '+ str(test_15.iat[-1,0])+' price: '+str(test_15['close'].iloc[-1])+' loss: '+ str(test_15_line['key'].iloc[-4]))
-        #         record_first['flag'].iloc[-1] = 'yes'
-        #     elif (str(test_15_line.iat[-3,0]) == record_first.iat[-1,0] and test_15['close'].iloc[-1] > test_15_line['key'].iloc[-2]):
-        #         print('buy: ' + str(test_15.iat[-1, 0]) + ' price: ' + str(test_15['close'].iloc[-1]) + ' loss: ' + str(test_15_line['key'].iloc[-3]))
-        #         record_first['flag'].iloc[-1] = 'yes'
 
 
     grid_15_chart = chart_test(test_15_simple, test_15_deal, test_15_line)

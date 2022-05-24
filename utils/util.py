@@ -2,6 +2,7 @@ import talib
 import os
 import pandas as pd
 import copy
+import datetime
 def stock_macd(df):
 
     diff, dea, macd = talib.MACD(df["close"],
@@ -119,3 +120,49 @@ def find_gird(max4, min4, max3, min3, max2, min2, max1, min1):
     sl =round((l[1]+l[2])/6,2)
     gird = round(abs(max1 + min1)/2,2)
     return sl,gird
+def judge_buy(test_15_line,record_first,test_15,test_15_deal):
+    if len(test_15_line) > 3 and len(record_first) > 1 and record_first['flag'].iloc[-1] != 'yes' and\
+            test_15['close'].iloc[-1] > test_15['close'].iloc[-20] \
+            and test_15['close'].iloc[-1] > test_15['close'].iloc[-19] and record_first['flag'].iloc[-1] != 'no' and\
+            record_first['point'].iloc[-1] < test_15['low'].iloc[-1]:
+        if (test_15['ma5'].iloc[-1] > test_15['ma10'].iloc[-1] or test_15['close'].iloc[-1] > test_15['close'].iloc[
+            -5]) and test_15['ema5'].iloc[-1] < test_15['close'].iloc[-1] \
+                and (test_15['open'].iloc[-1] < test_15['close'].iloc[-1] or test_15['close'].iloc[-1] > (
+                test_15['open'].iloc[-1] + test_15['close'].iloc[-1]) / 2):
+            if chaos(test_15_deal, 'rise') == False:
+                loss = comp_loss(test_15, record_first.iat[-1, 0], 'rise')
+                if loss != 0:
+                    print('buy: ' + str(test_15.iat[-1, 0]) + ' price: ' + str(
+                        test_15['close'].iloc[-1]) + ' loss: ' + str(loss) + ' ' + str(test_15['short'].iloc[-1]))
+                    record_first['loss'].iloc[-1] = loss
+                    record_first['flag'].iloc[-1] = 'yes'
+            else:
+                if test_15['ma5'].iloc[-1]>test_15['ma10'].iloc[-1]>test_15['ma20'].iloc[-1] \
+                        and test_15['ma5'].iloc[-1]>test_15['ma60'].iloc[-1] and test_15['ma5'].iloc[-1]>test_15['ma120'].iloc[-1]:
+                    if launch(test_15,'rise') and vol_confirm(test_15) and test_15['short'].iloc[-1]>0.1:
+                        loss = comp_loss(test_15,record_first.iat[-1,0],'rise')
+                        if loss != 0:
+                            print('buy: ' + str(test_15.iat[-1, 0]) + ' price: ' + str(test_15['close'].iloc[-1]) + ' loss: ' + str(loss) +'多头排列'+' '+str(test_15['short'].iloc[-1]))
+                            record_first['loss'].iloc[-1] = loss
+                            record_first['flag'].iloc[-1] = 'yes'
+def judge_piont(l_simple,h_line,index):
+    i =index
+    # 最后不能太无力
+    if i ==-3:
+        dif=0
+    else:
+        dif=1
+    if (l_simple["close"].iloc[i] <= l_simple["close"].iloc[i+2+dif] or l_simple["close"].iloc[i+2+dif] >=l_simple["open"].iloc[i]) \
+            and (l_simple["high"].iloc[i+2+dif] > l_simple["high"].iloc[i+1+dif] or l_simple["close"].iloc[i+2+dif] >l_simple["high"].iloc[i]
+            or l_simple["close"].iloc[i+2+dif] > (l_simple["high"].iloc[i] + l_simple["close"].iloc[i]) / 2) \
+            and l_simple.iat[i-1, 0] + datetime.timedelta(minutes=-60) <= h_line.iat[-1, 0] <l_simple.iat[i+2+dif, 0] + datetime.timedelta(minutes=60)\
+            and h_line['flag'].iloc[-1] == 'down':
+        return True
+    elif (l_simple["close"].iloc[i] >= l_simple["close"].iloc[i+2+dif] or l_simple["close"].iloc[i+2+dif] <=l_simple["open"].iloc[i]) \
+            and (l_simple["low"].iloc[i+2+dif] < l_simple["low"].iloc[i+1+dif] or l_simple["close"].iloc[i+2+dif] <l_simple["low"].iloc[i]
+            or l_simple["close"].iloc[i+2+dif] < (l_simple["low"].iloc[i] + l_simple["close"].iloc[i]) / 2) \
+            and l_simple.iat[i-1, 0] + datetime.timedelta(minutes=-60) <= h_line.iat[-1, 0] <l_simple.iat[i+2+dif, 0] + datetime.timedelta(minutes=60)\
+            and h_line['flag'].iloc[-1] == 'rise':
+        return True
+
+    return False
