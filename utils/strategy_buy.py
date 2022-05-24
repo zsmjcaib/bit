@@ -386,31 +386,30 @@ def first_test(normal,deal,line,index,level):
 
 
 
-def strategy_test(test_15_simple,test_15,test_15_deal,test_15_line,test_1h,test_1h_deal,test_1h_line,test_4h,test_4h_deal,test_4h_line):
-    l = pd.DataFrame({'date':'','first':'yes','15m':'','1h':'','15m小转大':'','1h小转大':'','point':'','is_gird':'','gird':'','sl':''}, index=[1])
-    if  test_15_line['is_test'].iloc[-1]!='yes':
-        index = test_15_simple[test_15_simple["date"] == test_15_line.iloc[-1]["date"]].index.tolist()[0]
-        if index == len(test_15_simple) - 3:
-            #判断端点
-            result=judge_piont(test_15_simple,test_1h_line,-3)
-            if result and test_15_line.iat[-1, 7] != 'yes':
-                l,result, mark_price = calculate(test_15,test_15_deal,test_15_line,test_1h,test_1h_deal,test_1h_line)
-                return l,result, mark_price
-        elif index == len(test_15_simple) - 4:
-            #判断端点
-            result=judge_piont(test_15_simple,test_1h_line,-4)
-            if result and test_15_line.iat[-1, 7] != 'yes':
-                l,result, mark_price = calculate(test_15, test_15_deal, test_15_line, test_1h, test_1h_deal,test_1h_line)
-                return l,result, mark_price
-        elif index< len(test_15_simple) - 4:
-            result=additional_piont(test_15,test_15_line,test_1h_line)
-            if result and test_15_line.iat[-1, 7] != 'yes':
-                l,result, mark_price = calculate(test_15,test_15_deal,test_15_line,test_1h,test_1h_deal,test_1h_line)
-                return l,result, mark_price
+def strategy_test_buy(test_15_simple,test_15,test_15_deal,test_15_line,test_1h,test_1h_deal,test_1h_line,test_4h,test_4h_deal,test_4h_line):
+    l = pd.DataFrame({'date':'','first':'yes','15m':'','1h':'','15m小转大':'','1h小转大':'','point':'','is_gird':'','gird':'','sl':'','direction':''}, index=[1])
+    index = test_15_simple[test_15_simple["date"] == test_15_line.iloc[-1]["date"]].index.tolist()[0]
+    if index == len(test_15_simple) - 3:
+        #判断端点
+        result=judge_piont(test_15_simple,test_1h_line,-3)
+        if result:
+            l,result, mark_price = calculate(test_15,test_15_deal,test_15_line,test_1h,test_1h_deal,test_1h_line)
+            return l,result, mark_price
+    elif index == len(test_15_simple) - 4:
+        #判断端点
+        result=judge_piont(test_15_simple,test_1h_line,-4)
+        if result:
+            l,result, mark_price = calculate(test_15, test_15_deal, test_15_line, test_1h, test_1h_deal,test_1h_line)
+            return l,result, mark_price
+    elif index< len(test_15_simple) - 4:
+        result=additional_piont(test_15,test_15_line,test_1h_line)
+        if result :
+            l,result, mark_price = calculate(test_15,test_15_deal,test_15_line,test_1h,test_1h_deal,test_1h_line)
+            return l,result, mark_price
     return l, 'no',0
 
 def calculate(low,low_deal,low_line,test_1h,high,test_1h_line):
-    l = pd.DataFrame({'date':'','first':'yes','15m':'','1h':'','15m小转大':'','1h小转大':'','point':'','is_gird':'','gird':'','sl':''}, index=[1])
+    l = pd.DataFrame({'date':'','first':'yes','15m':'','1h':'','15m小转大':'','1h小转大':'','point':'','is_gird':'','gird':'','sl':'','direction':''}, index=[1])
     result = 'no'
     mark_price =0
     if low_line.iat[-1, 7] != 'yes':
@@ -423,6 +422,7 @@ def calculate(low,low_deal,low_line,test_1h,high,test_1h_line):
                 mark_price = l_mark_price
                 l.iat[-1,3]='y'
                 l.iat[-1,2]='y'
+                l['direction'].iloc[-1]='min'
                 result = 'yes'
                 if l_point!='':
                     l.iat[-1, 6] = l_point
@@ -433,6 +433,7 @@ def calculate(low,low_deal,low_line,test_1h,high,test_1h_line):
                 # print('1h小转大'+ h_result + ' ' + l_result)
                 mark_price = l_mark_price
                 l.iat[-1,5]='y'
+                l['direction'].iloc[-1]='min'
                 result = 'yes'
                 if l_point!='':
                     l.iat[-1, 6] = l_point
@@ -443,6 +444,7 @@ def calculate(low,low_deal,low_line,test_1h,high,test_1h_line):
                 mark_price = l_mark_price
                 l.iat[-1,4]='y'
                 result = 'yes'
+                l['direction'].iloc[-1]='min'
                 if l_point!='':
                     l.iat[-1, 6] = l_point
                 elif h_point!='':

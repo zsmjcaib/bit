@@ -3,6 +3,6 @@ zsmjcaib_key:
 zsmjcaib_secret:
   'k3IAmq2962cdeBKkLCZ0GgISer0B3IByivFYP53nU8y7oVkdoMV9Q3xGad6UIiix'
 btc:
-  '/Users/zsmjcaib/Desktop/code/coin/data/btc/'
+  'D:\project\bit\data\'
 test_btc:
-    '/Users/zsmjcaib/Desktop/code/coin/data/test/btc/'
+  'D:\project\bit\data\test\'

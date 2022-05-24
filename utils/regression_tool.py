@@ -6,10 +6,11 @@ from utils.long_to_gird import long_to_gird_test
 from utils.point import simpleTrend
 from utils.deal import find_point
 from utils.line import find_line
-from utils.strategy_buy import strategy_test
+from utils.strategy_buy import strategy_test_buy
 from chart import draw_kline
 import numpy as np
 from utils.small_to_large import check
+from utils.strategy_sell import strategy_test_sell
 from utils.util import read_first_record, read_buy_record, comp_loss, chaos, launch, vol_confirm, grid, judge_buy
 import time
 
@@ -203,21 +204,38 @@ def test(type,api):
             print(1)
         if str(test_15.iat[-1,0]) == '2021-12-11 04:45:00':#震荡未识别
             print(1)
+        if test_15_line['is_test'].iloc[-1] != 'yes':
+            if test_15_line['flag'].iloc[-1] =='down':
+                l,result,mark_price = strategy_test_buy(test_15_simple[-1500:].reset_index(drop=True),test_15[-1500:].reset_index(drop=True),test_15_deal,test_15_line,test_1h,test_1h_deal,
+                                                  test_1h_line,test_4h,test_4h_deal,test_4h_line)
+            else:
+                l,result,mark_price = strategy_test_sell(test_15_simple[-1500:].reset_index(drop=True),test_15[-1500:].reset_index(drop=True),test_15_deal,test_15_line,test_1h,test_1h_deal,
+                                                  test_1h_line,test_4h,test_4h_deal,test_4h_line)
+            if  result == 'yes':
+                record_first = record_first.append(l, ignore_index=True)
+                record_first.iat[-1,0] = str(test_15_line.iat[-1,0])
+        rise_index = record_first[record_first['direction'] == 'min'].index.tolist()
+        down_index = record_first[record_first['direction'] == 'max'].index.tolist()
+        if len(rise_index)>0:
+            rise_index = rise_index[-1]
+        else:
+            rise_index ='wrong'
+        if len(down_index) > 0:
+            down_index = down_index[-1]
+        else:
+            down_index ='wrong'
+        if rise_index !='wrong' and record_first['flag'].iloc[rise_index] != 'no' and record_first['point'].iloc[-1]>test_15['low'].iloc[-1]:
+            record_first['flag'].iloc[rise_index] = 'no'
+        if down_index !='wrong' and record_first['flag'].iloc[down_index] != 'no' and record_first['point'].iloc[-1]<test_15['low'].iloc[-1]:
+            record_first['flag'].iloc[down_index] = 'no'
 
-        l,result,mark_price = strategy_test(test_15_simple[-1500:].reset_index(drop=True),test_15[-1500:].reset_index(drop=True),test_15_deal,test_15_line,test_1h,test_1h_deal,
-                                          test_1h_line,test_4h,test_4h_deal,test_4h_line)
-        if  result == 'yes':
-            record_first = record_first.append(l, ignore_index=True)
-            record_first.iat[-1,0] = str(test_15_line.iat[-1,0])
-        if len(record_first) > 1 and record_first['point'].iloc[-1]>test_15['low'].iloc[-1]:
-            record_first['flag'].iloc[-1] = 'no'
         if record_first['flag'].iloc[-1] == 'yes' and record_first['point'].iloc[-1]<test_15['low'].iloc[-1] < record_first['loss'].iloc[-1] != '':
             record_first['flag'].iloc[-1] = ''
             record_first['loss'].iloc[-1] = ''
         judge_buy(test_15_line,record_first,test_15,test_15_deal)
         long_to_gird_test(test_15_simple[-1500:].reset_index(drop=True),test_15[-1500:].reset_index(drop=True),test_15_deal,test_15_line,test_1h_line,record_first)
-        if record_first['flag'].iloc[-1] == 'yes' and test_15['close'].iloc[-1] < test_15['close'].iloc[-19] :
-            print('准备网格 '+str(test_15.iat[-1, 0]) )
+        # if record_first['flag'].iloc[-1] == 'yes' and test_15['close'].iloc[-1] < test_15['close'].iloc[-19] :
+        #     print('准备网格 '+str(test_15.iat[-1, 0]) )
 
 
         if len(test_15_line) > 3 and len(record_first) > 1 and record_first['flag'].iloc[-1] != 'yes' and\

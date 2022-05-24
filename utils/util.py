@@ -32,11 +32,11 @@ def stock_macd(df):
 
 def read_first_record(path):
     if not os.path.exists(path ):
-        demo = pd.DataFrame(columns=['date','first','15m','1h','15m小转大','1h小转大','flag','loss','point','is_gird','gird','sl'])
-        demo.loc[len(demo)] = [ "1997","", "","", "","","","","","","",""]
+        demo = pd.DataFrame(columns=['date','first','15m','1h','15m小转大','1h小转大','flag','loss','point','is_gird','gird','sl','direction'])
+        demo.loc[len(demo)] = [ "1997","", "","", "","","","","","","","",""]
     else:
-        demo = pd.DataFrame(columns=['date', 'first', '15m', '1h', '15m小转大', '1h小转大', 'flag','loss','point','is_gird','gird','sl'])
-        demo.loc[len(demo)] = [ "1997","", "","", "","","","","","","",""]
+        demo = pd.DataFrame(columns=['date', 'first', '15m', '1h', '15m小转大', '1h小转大', 'flag','loss','point','is_gird','gird','sl','direction'])
+        demo.loc[len(demo)] = [ "1997","", "","", "","","","","","","","",""]
         # demo = pd.read_csv(path )
     return demo
 
