@@ -40,13 +40,13 @@ def read_first_record(path):
         # demo = pd.read_csv(path )
     return demo
 
-def read_buy_record(path):
+def exchange_record(path):
     if not os.path.exists(path):
-        demo = pd.DataFrame(columns=['date', 'mark_price', 'buy_price', 'mark_sell', 'sell_price', 'net'])
-        demo.loc[len(demo)] = ["", "", "", "", "",  "1"]
+        demo = pd.DataFrame(columns=['date', 'direction', 'price', 'loss', 'outstanding', 'balance','num'])
+        demo.loc[len(demo)] = ["", "", "", "", "",  "100000",""]
     else:
-        demo = pd.DataFrame(columns=['date', 'mark_price', 'buy_price', 'mark_sell', 'sell_price', 'net'])
-        demo.loc[len(demo)] = ["", "", "", "", "",  "1"]
+        demo = pd.DataFrame(columns=['date', 'direction', 'price', 'loss', 'outstanding', 'balance','num'])
+        demo.loc[len(demo)] = ["", "", "", "", "",  "100000",""]
     return demo
 def comp_loss(normal,date,flag):
     index = normal[normal['date'] == date].index.tolist()[-1]
@@ -157,6 +157,7 @@ def judge_buy(test_15_line,record_first,test_15,test_15_deal,rise_index):
                         test_15['close'].iloc[-1]) + ' loss: ' + str(loss) + ' ' + str(test_15['short'].iloc[-1]))
                     record_first['loss'].iloc[rise_index] = loss
                     record_first['flag'].iloc[rise_index] = 'yes'
+                    return 'normal',loss
             else:
                 if test_15['ma5'].iloc[-1]>test_15['ma10'].iloc[-1]>test_15['ma20'].iloc[-1] \
                         and test_15['ma5'].iloc[-1]>test_15['ma60'].iloc[-1] and test_15['ma5'].iloc[-1]>test_15['ma120'].iloc[-1]:
@@ -166,6 +167,9 @@ def judge_buy(test_15_line,record_first,test_15,test_15_deal,rise_index):
                             print('buy: ' + str(test_15.iat[-1, 0]) + ' price: ' + str(test_15['close'].iloc[-1]) + ' loss: ' + str(loss) +'多头排列'+' '+str(test_15['short'].iloc[-1]))
                             record_first['loss'].iloc[rise_index] = loss
                             record_first['flag'].iloc[rise_index] = 'yes'
+                            return 'special', loss
+    return 'no', 0
+
 
 def judge_sell(test_15_line,record_first,test_15,test_15_deal,down_index):
     if len(test_15_line) > 3 and len(record_first) > 1 and record_first['flag'].iloc[down_index] != 'yes' and\
@@ -183,6 +187,8 @@ def judge_sell(test_15_line,record_first,test_15,test_15_deal,down_index):
                         test_15['close'].iloc[-1]) + ' loss: ' + str(loss) + ' ' + str(test_15['short'].iloc[-1]))
                     record_first['loss'].iloc[down_index] = loss
                     record_first['flag'].iloc[down_index] = 'yes'
+                    return 'normal',loss
+
             else:
                 if test_15['ma5'].iloc[-1]<test_15['ma10'].iloc[-1]<test_15['ma20'].iloc[-1] \
                         and test_15['ma5'].iloc[-1]<test_15['ma60'].iloc[-1] and test_15['ma5'].iloc[-1]<test_15['ma120'].iloc[-1]:
@@ -192,6 +198,9 @@ def judge_sell(test_15_line,record_first,test_15,test_15_deal,down_index):
                             print('sell: ' + str(test_15.iat[-1, 0]) + ' price: ' + str(test_15['close'].iloc[-1]) + ' loss: ' + str(loss) +'空头排列'+' '+str(test_15['short'].iloc[-1]))
                             record_first['loss'].iloc[down_index] = loss
                             record_first['flag'].iloc[down_index] = 'yes'
+                            return 'special', loss
+    return 'no', 0
+
 
 def judge_piont(l_simple,h_line,index):
     i =index
@@ -214,3 +223,38 @@ def judge_piont(l_simple,h_line,index):
         return True
 
     return False
+
+def statistics(test_15,exchange,loss,flag):
+    price = test_15['close'].iloc[-1]
+    balance = int(exchange['balance'].iloc[-1])
+
+    if flag =='long':
+        num = balance/price*0.995
+        balance = 0
+    else:
+        num = -1*exchange['balance'].iloc[-1]/price*0.995
+        balance = balance*1.995
+    new = pd.DataFrame({"date": test_15["date"].iloc[-1], "direction": flag, "price": test_15['close'].iloc[-1], "loss":loss,"outstanding":'no',"balance":balance,"num":num},index=[1])
+    exchange = exchange.append(new, ignore_index=True)
+    return exchange
+
+def oustanding(test_15,exchange,situation):
+    flag = exchange['direction'].iloc[-1]
+    price = test_15['close'].iloc[-1]
+    loss = exchange['loss'].iloc[-1]
+    num = 0
+    balance = int(exchange['balance'].iloc[-1])
+    if situation=='active':
+        if flag=='long':
+            balance = exchange['num'].iloc[-1]*price*0.995
+        else:
+            balance = balance+exchange['num'].iloc[-1]*price*1.005
+    else:
+        if flag=='long':
+            balance = exchange['num'].iloc[-1]*loss*0.995
+        else:
+            balance = balance+exchange['num'].iloc[-1]*loss*1.005
+
+    new = pd.DataFrame({"date": test_15["date"].iloc[-1], "direction": flag, "price": test_15['close'].iloc[-1], "loss":loss,"outstanding":'yes',"balance":balance,"num":num},index=[1])
+    exchange = exchange.append(new, ignore_index=True)
+    return exchange

@@ -11,8 +11,8 @@ from chart import draw_kline
 import numpy as np
 from utils.small_to_large import check
 from utils.strategy_sell import strategy_test_sell
-from utils.util import read_first_record, read_buy_record, comp_loss, chaos, launch, vol_confirm, grid, judge_buy, \
-    judge_sell
+from utils.util import read_first_record, exchange_record, comp_loss, chaos, launch, vol_confirm, grid, judge_buy, \
+    judge_sell, statistics, oustanding
 import time
 
 def chart_test(df,deal,line):
@@ -121,14 +121,14 @@ def test(type,api):
     test_line_1h_path = api['test_'+str(type)]+'/line_1h.csv'
     test_line_4h_path = api['test_'+str(type)]+'/line_4h.csv'
     record_first = read_first_record(api['test_'+str(type)]+'/record_first.csv')
-    record_buy = read_buy_record(api['test_'+str(type)]+'/record_second.csv')
+    exchange = exchange_record(api['test_' + str(type)] + '/exchange_record.csv')
     record_small = (api['test_'+str(type)]+'/record_small.csv')
 
 
 
 
 
-    test_15 = real_data[5500:9000]
+    test_15 = real_data[:3000]
     test_15 = test_15.reset_index(drop=True)
     test_1h = import_csv(test_15, '1H','','init')
     test_4h = import_csv(test_15, '4H','','init')
@@ -164,7 +164,7 @@ def test(type,api):
     b =time.time()
 
 
-    for i, row in real_data[9000:].iterrows():
+    for i, row in real_data[3000:10000].iterrows():
         if i%500 ==0:
             print(test_15.iat[-1,0])
             grid_15_chart = chart_test(test_15_simple, test_15_deal, test_15_line)
@@ -197,7 +197,7 @@ def test(type,api):
         #
         # test_4h_line = find_line(test_4h_deal , test_4h_line)
 
-        if str(test_15.iat[-1,0]) == '2021-08-01 06:15:00':#震荡未识别 2021-12-18 21:30:00#为何买入 2022-04-25 11:45:00止损价 2022-04-30 00:00:00
+        if str(test_15.iat[-1,0]) == '2021/6/8 7:45:00':#震荡未识别 2021-12-18 21:30:00#为何买入 2022-04-25 11:45:00止损价 2022-04-30 00:00:00
             print(1)
         if str(test_15.iat[-1,0]) == '2021-11-28 06:15:00':#震荡未识别
             print(1)
@@ -223,6 +223,7 @@ def test(type,api):
             down_index = down_index[-1]
         else:
             down_index ='wrong'
+
         if rise_index !='wrong' and record_first['flag'].iloc[rise_index] != 'no' and record_first['point'].iloc[rise_index]>test_15['low'].iloc[-1]:
             record_first['flag'].iloc[rise_index] = 'no'
         if down_index !='wrong' and record_first['flag'].iloc[down_index] != 'no' and record_first['point'].iloc[down_index]<test_15['low'].iloc[-1]:
@@ -232,13 +233,27 @@ def test(type,api):
             record_first['flag'].iloc[rise_index] = ''
             record_first['loss'].iloc[rise_index] = ''
 
-        if down_index !='wrong' and record_first['flag'].iloc[down_index] == 'yes' and record_first['point'].iloc[down_index]>test_15['high'].iloc[-1] > record_first['loss'].iloc[down_index] != '':
+        if down_index !='wrong' and record_first['flag'].iloc[down_index] == 'yes' and record_first['point'].iloc[down_index]>test_15['low'].iloc[-1] > record_first['loss'].iloc[down_index] != '':
             record_first['flag'].iloc[down_index] = ''
             record_first['loss'].iloc[down_index] = ''
         if rise_index != 'wrong':
-            judge_buy(test_15_line,record_first,test_15,test_15_deal,rise_index)
+            result,loss = judge_buy(test_15_line,record_first,test_15,test_15_deal,rise_index)
+            if result!='no':
+                if len(exchange)>1 and exchange['outstanding'].iloc[-1]=='no':
+                    exchange = oustanding(test_15,exchange,'active')
+                exchange = statistics(test_15,exchange,loss,'long')
         if down_index != 'wrong':
-            judge_sell(test_15_line,record_first,test_15,test_15_deal,down_index)
+            result,loss = judge_sell(test_15_line,record_first,test_15,test_15_deal,down_index)
+            if result!='no':
+                if len(exchange)>1 and exchange['outstanding'].iloc[-1]=='no':
+                    exchange = oustanding(test_15,exchange,'active')
+                exchange = statistics(test_15,exchange,loss,'short')
+        if exchange['outstanding'].iloc[-1]!='no':
+            if exchange['direction'].iloc[-1]=='long' and exchange['loss'].iloc[-1]<test_15['low'].iloc[-1]:
+                exchange = oustanding(test_15, exchange, 'passive')
+            elif exchange['direction'].iloc[-1]=='short' and exchange['loss'].iloc[-1]>test_15['high'].iloc[-1]:
+                exchange = oustanding(test_15, exchange, 'passive')
+
         # long_to_gird_test(test_15_simple[-1500:].reset_index(drop=True),test_15[-1500:].reset_index(drop=True),test_15_deal,test_15_line,test_1h_line,record_first)
         # # if record_first['flag'].iloc[-1] == 'yes' and test_15['close'].iloc[-1] < test_15['close'].iloc[-19] :
         # #     print('准备网格 '+str(test_15.iat[-1, 0]) )
@@ -260,4 +275,6 @@ def test(type,api):
     grid_4h_chart = chart_test(test_4h_simple, test_4h_deal, test_4h_line)
     grid_4h_chart.render(api['test_'+str(type)] + '4h_' + 'last' + ".html")
     record_first.to_csv(api['test_'+str(type)]+'/record_first.csv', index=False)
+    exchange.to_csv(api['test_'+str(type)]+'/exchange_record.csv', index=False)
+
 
