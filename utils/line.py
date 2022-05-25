@@ -130,7 +130,7 @@ def __deal(index, df, df_line):
                     i += 2
                     continue
                 # 第一种情况
-                elif (df["key"].iloc[i + 1] >= df["key"].iloc[i + 4]) and df["key"].iloc[i + 3] >= df["key"].iloc[i + 1]:
+                elif status(df_line,df,i) and df["key"].iloc[i + 3] >= df["key"].iloc[i + 1]:
                     i,result = __first_case(i, df, df_line)
                     if result == "wrong":
                         return
@@ -147,7 +147,8 @@ def __deal(index, df, df_line):
                     i += 2
                     continue
                 # 第一种情况
-                elif df["key"].iloc[i + 1] <= df["key"].iloc[i + 4] and df["key"].iloc[i + 3] <= df["key"].iloc[i + 1]:
+
+                elif status(df_line,df,i) and df["key"].iloc[i + 3] <= df["key"].iloc[i + 1]:
                     i,result = __first_case(i, df, df_line)
                     if result == "wrong":
                         return
@@ -286,11 +287,19 @@ def  __last(df, df_line,small_date,first_date,second_date,small ):
         if flag == "rise":
             #先看有没有更高的
             key = df["key"].iloc[index:].max()
+
             if df_line['key'].iloc[-1] <= key:
-                #有更高的
-                df_line.drop(df_line.tail(1).index, inplace=True)
                 i = df["key"].iloc[index:].idxmax()
-                df_line.loc[len(df_line)] = [df.iat[i, 0], df.iat[i, 1], "rise", "temp", "", "", "", ""]
+                low_index = df["key"].iloc[index:i].idxmin()
+                #有更高的
+                #判断更高的与现在之间有没有线段
+                if index +1 < low_index:
+                    df_line.loc[len(df_line)] = [df.iat[low_index, 0], df.iat[low_index, 1], "down", "temp", "", "", "", ""]
+                    if low_index+2<i:
+                        df_line.loc[len(df_line)] = [df.iat[i, 0], df.iat[i, 1], "rise", "temp", "", "", "", ""]
+                else:
+                    df_line.drop(df_line.tail(1).index, inplace=True)
+                    df_line.loc[len(df_line)] = [df.iat[i, 0], df.iat[i, 1], "rise", "temp", "", "", "", ""]
                 #再看能否找到低点
                 if i < len(df) - 3:
                     key = df["key"].iloc[i+2:].min()
@@ -317,37 +326,23 @@ def  __last(df, df_line,small_date,first_date,second_date,small ):
                                 key_index = df[df["key"] == key].index.tolist()[-1]
                                 df_line.loc[len(df_line)] = [df.iat[key_index, 0], key, "rise", "temp", "","","",""]
 
-
-
-
-            # #找低点
-            # key = df["key"].iloc[index:].min()
-            # key_index = df[df["key"] == key].index.tolist()[-1]
-            # df_line.loc[len(df_line)] = [df.iat[key_index, 0], key, "down", "temp", "","","",""]
-            # key_index+=3
-            # #最后高点
-            # if (key_index  < len(df)):
-            #     key = df["key"].iloc[key_index:].max()
-            #     #是最高点
-            #     if key == df["key"].iloc[key_index-2:].max():
-            #         key_index = df[df["key"] == key].index.tolist()[-1]
-            #         df_line.loc[len(df_line)] = [df.iat[key_index, 0], key, "rise", "temp", "","","",""]
-
-
-
-            # # 最后一笔创新高，更新线段
-            # elif df["key"].iloc[-1] > df_line['key'].iloc[df_line[df_line['flag'] == 'rise'].index.tolist()[-1]]:
-            #     df_line.drop(df_line.tail(2).index, inplace=True)
-            #     df_line.loc[len(df_line)] = [df.iat[-1, 0], df.iat[-1, 1], "rise", "temp", "", "", "", ""]
         else:
             if flag == "down":
                 # 先看有没有更低的
                 key = df["key"].iloc[index:].min()
                 if df_line['key'].iloc[-1] >= key:
                     # 有更低的
-                    df_line.drop(df_line.tail(1).index, inplace=True)
+                    # 判断更低的与现在之间有没有线段
+
                     i = df["key"].iloc[index:].idxmin()
-                    df_line.loc[len(df_line)] = [df.iat[i, 0], df.iat[i, 1], "down", "temp", "", "", "", ""]
+                    high_index = df["key"].iloc[index:i].idxmax()
+                    if index + 1 < high_index:
+                        df_line.loc[len(df_line)] = [df.iat[high_index, 0], df.iat[high_index, 1], "rise", "temp", "", "","", ""]
+                        if high_index + 2 < i:
+                            df_line.loc[len(df_line)] = [df.iat[i, 0], df.iat[i, 1], "down", "temp", "", "", "", ""]
+                    else:
+                        df_line.drop(df_line.tail(1).index, inplace=True)
+                        df_line.loc[len(df_line)] = [df.iat[i, 0], df.iat[i, 1], "down", "temp", "", "", "", ""]
                     # 再看能否找到高点
                     if i < len(df) - 3:
                         key = df["key"].iloc[i + 2:].max()
@@ -442,9 +437,17 @@ def check(df,df_line,i):
                 return i
     return i
 
-
-
-
+def status(df_line,df,i):
+    index = df[df["date"] == df_line.iat[-1, 0]].index.tolist()[0]
+    if df_line['flag'].iloc[-1] == 'rise':
+        for j in range(index ,i+4):
+            if df['key'].iloc[j]>=df["key"].iloc[i + 4]:
+                return True
+    else:
+        for j in range(index ,i+4):
+            if df['key'].iloc[j]<=df["key"].iloc[i + 4]:
+                return True
+    return False
 
 if __name__ == '__main__':
     with open('../config.yaml') as f:

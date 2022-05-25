@@ -54,6 +54,10 @@ def comp_loss(normal,date,flag):
         for i in range(index,len(normal)-1):
             if normal['ma5'].iloc[i] < normal['close'].iloc[i]:
                 return normal['open'].iloc[i]
+    else:
+        for i in range(index, len(normal) - 1):
+            if normal['ma5'].iloc[i] > normal['close'].iloc[i]:
+                return normal['open'].iloc[i]
     return 0
 
 def chaos(deal,flag):
@@ -64,12 +68,22 @@ def chaos(deal,flag):
         max4,min4,max3, min3, max2, min2, _, _, max1, min1 = temp['key'][-11:-1]
         return judge(min1, max1,min2, max2, min3, max3,min4,max4,'rise')
     if flag == 'down':
+        if temp["temp"].iloc[-1] =='yes' and temp["flag"].iloc[-1] =='max':
+            temp.drop(temp.tail(1).index,inplace=True)
         min4,max4,min3, max3, min2, max2,_, _,  min1, max1 = temp['key'][-11:-1]
+        return judge(min1, max1,min2, max2, min3, max3,min4,max4,'down')
     return False
 
 def judge(min1, max1,min2, max2, min3, max3,min4,max4,flag):
 
     if flag == 'rise':
+        ratio1 = calcul(min1, max1, min2, max2)
+        ratio2 = calcul(min1, max1, min3, max3)
+        ratio3 = calcul(min1, max1, min4, max4)
+
+        if ratio1>0.6 or ratio2>0.6 or ratio3>0.6 :
+            return True
+    else:
         ratio1 = calcul(min1, max1, min2, max2)
         ratio2 = calcul(min1, max1, min3, max3)
         ratio3 = calcul(min1, max1, min4, max4)
@@ -97,6 +111,13 @@ def launch(normal,flag):
                 return False
             else:
                 continue
+    else:
+        for i in range(0,len(l)-1):
+            if normal['ma5'].iloc[l[i]]>normal['ma5'].iloc[l[i+1]] or normal['ma10'].iloc[l[i]]>normal['ma10'].iloc[l[i+1]]\
+                or normal['ma20'].iloc[l[i]]>normal['ma20'].iloc[l[i+1]]:
+                return False
+            else:
+                continue
     return True
 def vol_confirm(normal):
     if normal[-5:]['vol'].mean() > normal['vol_ma'].iloc[-1]*1.3 or normal[-5:]['vol'].max() >normal['vol_ma'].iloc[-1]*1.8:
@@ -120,31 +141,58 @@ def find_gird(max4, min4, max3, min3, max2, min2, max1, min1):
     sl =round((l[1]+l[2])/6,2)
     gird = round(abs(max1 + min1)/2,2)
     return sl,gird
-def judge_buy(test_15_line,record_first,test_15,test_15_deal):
-    if len(test_15_line) > 3 and len(record_first) > 1 and record_first['flag'].iloc[-1] != 'yes' and\
+def judge_buy(test_15_line,record_first,test_15,test_15_deal,rise_index):
+    if len(test_15_line) > 3 and len(record_first) > 1 and record_first['flag'].iloc[rise_index] != 'yes' and\
             test_15['close'].iloc[-1] > test_15['close'].iloc[-20] \
-            and test_15['close'].iloc[-1] > test_15['close'].iloc[-19] and record_first['flag'].iloc[-1] != 'no' and\
-            record_first['point'].iloc[-1] < test_15['low'].iloc[-1]:
+            and test_15['close'].iloc[-1] > test_15['close'].iloc[-19] and record_first['flag'].iloc[rise_index] != 'no' and\
+            record_first['point'].iloc[rise_index] < test_15['low'].iloc[-1]:
         if (test_15['ma5'].iloc[-1] > test_15['ma10'].iloc[-1] or test_15['close'].iloc[-1] > test_15['close'].iloc[
             -5]) and test_15['ema5'].iloc[-1] < test_15['close'].iloc[-1] \
                 and (test_15['open'].iloc[-1] < test_15['close'].iloc[-1] or test_15['close'].iloc[-1] > (
                 test_15['open'].iloc[-1] + test_15['close'].iloc[-1]) / 2):
             if chaos(test_15_deal, 'rise') == False:
-                loss = comp_loss(test_15, record_first.iat[-1, 0], 'rise')
+                loss = comp_loss(test_15, record_first.iat[rise_index, 0], 'rise')
                 if loss != 0:
                     print('buy: ' + str(test_15.iat[-1, 0]) + ' price: ' + str(
                         test_15['close'].iloc[-1]) + ' loss: ' + str(loss) + ' ' + str(test_15['short'].iloc[-1]))
-                    record_first['loss'].iloc[-1] = loss
-                    record_first['flag'].iloc[-1] = 'yes'
+                    record_first['loss'].iloc[rise_index] = loss
+                    record_first['flag'].iloc[rise_index] = 'yes'
             else:
                 if test_15['ma5'].iloc[-1]>test_15['ma10'].iloc[-1]>test_15['ma20'].iloc[-1] \
                         and test_15['ma5'].iloc[-1]>test_15['ma60'].iloc[-1] and test_15['ma5'].iloc[-1]>test_15['ma120'].iloc[-1]:
                     if launch(test_15,'rise') and vol_confirm(test_15) and test_15['short'].iloc[-1]>0.1:
-                        loss = comp_loss(test_15,record_first.iat[-1,0],'rise')
+                        loss = comp_loss(test_15,record_first.iat[rise_index,0],'rise')
                         if loss != 0:
                             print('buy: ' + str(test_15.iat[-1, 0]) + ' price: ' + str(test_15['close'].iloc[-1]) + ' loss: ' + str(loss) +'多头排列'+' '+str(test_15['short'].iloc[-1]))
-                            record_first['loss'].iloc[-1] = loss
-                            record_first['flag'].iloc[-1] = 'yes'
+                            record_first['loss'].iloc[rise_index] = loss
+                            record_first['flag'].iloc[rise_index] = 'yes'
+
+def judge_sell(test_15_line,record_first,test_15,test_15_deal,down_index):
+    if len(test_15_line) > 3 and len(record_first) > 1 and record_first['flag'].iloc[down_index] != 'yes' and\
+            test_15['close'].iloc[-1] < test_15['close'].iloc[-20] \
+            and test_15['close'].iloc[-1] < test_15['close'].iloc[-19] and record_first['flag'].iloc[down_index] != 'no' and\
+            record_first['point'].iloc[down_index] > test_15['high'].iloc[-1]:
+        if (test_15['ma5'].iloc[-1] < test_15['ma10'].iloc[-1] or test_15['close'].iloc[-1] < test_15['close'].iloc[
+            -5]) and test_15['ema5'].iloc[-1] > test_15['close'].iloc[-1] \
+                and (test_15['open'].iloc[-1] > test_15['close'].iloc[-1] or test_15['close'].iloc[-1] < (
+                test_15['open'].iloc[-1] + test_15['close'].iloc[-1]) / 2):
+            if chaos(test_15_deal, 'down') == False:
+                loss = comp_loss(test_15, record_first.iat[down_index, 0], 'down')
+                if loss != 0:
+                    print('sell: ' + str(test_15.iat[-1, 0]) + ' price: ' + str(
+                        test_15['close'].iloc[-1]) + ' loss: ' + str(loss) + ' ' + str(test_15['short'].iloc[-1]))
+                    record_first['loss'].iloc[down_index] = loss
+                    record_first['flag'].iloc[down_index] = 'yes'
+            else:
+                if test_15['ma5'].iloc[-1]<test_15['ma10'].iloc[-1]<test_15['ma20'].iloc[-1] \
+                        and test_15['ma5'].iloc[-1]<test_15['ma60'].iloc[-1] and test_15['ma5'].iloc[-1]<test_15['ma120'].iloc[-1]:
+                    if launch(test_15,'down') and vol_confirm(test_15) and test_15['short'].iloc[-1]>0.1:
+                        loss = comp_loss(test_15,record_first.iat[down_index,0],'down')
+                        if loss != 0:
+                            print('sell: ' + str(test_15.iat[-1, 0]) + ' price: ' + str(test_15['close'].iloc[-1]) + ' loss: ' + str(loss) +'空头排列'+' '+str(test_15['short'].iloc[-1]))
+                            record_first['loss'].iloc[down_index] = loss
+                            record_first['flag'].iloc[down_index] = 'yes'
+
 def judge_piont(l_simple,h_line,index):
     i =index
     # 最后不能太无力

@@ -9,7 +9,7 @@ import copy
 def long_to_gird_test(test_15_simple,test_15,test_15_deal,test_15_line,test_1h_line,record_first):
     if record_first['flag'].iloc[-1] == 'yes' and test_15['ma60'].iloc[-1] > test_15['ma5'].iloc[-1]:
         if chaos(test_15_deal,'down') == True:
-
+            pass
 
 def chaos(deal, flag):
     temp = copy.deepcopy(deal[-20:])
@@ -26,11 +26,11 @@ def chaos(deal, flag):
 
 def judge(min1, max1,min2, max2, min3, max3,min4,max4,flag):
 
-    if flag == 'rise':
-        ratio1 = calcul(min1, max1, min2, max2)
-        ratio2 = calcul(min1, max1, min3, max3)
-        ratio3 = calcul(min1, max1, min4, max4)
-
-        if ratio1>0.6 or ratio2>0.6 or ratio3>0.6 :
-            return True
+    # if flag == 'rise':
+    #     ratio1 = calcul(min1, max1, min2, max2)
+    #     ratio2 = calcul(min1, max1, min3, max3)
+    #     ratio3 = calcul(min1, max1, min4, max4)
+    #
+    #     if ratio1>0.6 or ratio2>0.6 or ratio3>0.6 :
+    #         return True
     return False

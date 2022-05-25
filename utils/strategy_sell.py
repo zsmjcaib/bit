@@ -5,7 +5,7 @@ from utils.util import judge_piont
 
 
 def strategy_test_sell(test_15_simple,test_15,test_15_deal,test_15_line,test_1h,test_1h_deal,test_1h_line,test_4h,test_4h_deal,test_4h_line):
-    l = pd.DataFrame({'date':'','first':'yes','15m':'','1h':'','15m小转大':'','1h小转大':'','point':'','is_gird':'','gird':'','sl':''}, index=[1])
+    l = pd.DataFrame({'date':'','first':'yes','15m':'','1h':'','15m小转大':'','1h小转大':'','point':'','is_gird':'','gird':'','sl':'','direction':''}, index=[1])
     if  test_15_line['is_test'].iloc[-1]!='yes':
         index = test_15_simple[test_15_simple["date"] == test_15_line.iloc[-1]["date"]].index.tolist()[0]
         if index == len(test_15_simple) - 3:
@@ -24,7 +24,7 @@ def strategy_test_sell(test_15_simple,test_15,test_15_deal,test_15_line,test_1h,
     return l, 'no',0
 
 def calculate(low,low_deal,low_line,test_1h,high,test_1h_line):
-    l = pd.DataFrame({'date':'','first':'yes','15m':'','1h':'','15m小转大':'','1h小转大':'','point':'','is_gird':'','gird':'','sl':''}, index=[1])
+    l = pd.DataFrame({'date':'','first':'yes','15m':'','1h':'','15m小转大':'','1h小转大':'','point':'','is_gird':'','gird':'','sl':'','direction':''}, index=[1])
     result = 'no'
     mark_price =0
     if low_line.iat[-1, 7] != 'yes':
@@ -33,10 +33,11 @@ def calculate(low,low_deal,low_line,test_1h,high,test_1h_line):
             l_flag, l_mark_price, l_result, l_l_to_h,_,l_point = first_test(low, low_deal, low_line, -1, ['15m','less_15m'])
             low_line.iat[-1, 7] = 'yes'
             if h_flag + l_flag > 4 :
-                # print(h_result + ' ' + l_result)
+                print(h_result + ' ' + l_result)
                 mark_price = l_mark_price
                 l.iat[-1,3]='y'
                 l.iat[-1,2]='y'
+                l['direction'].iloc[-1]='max'
                 result = 'yes'
                 if l_point!='':
                     l.iat[-1, 6] = l_point
@@ -44,19 +45,21 @@ def calculate(low,low_deal,low_line,test_1h,high,test_1h_line):
                     l.iat[-1, 6] = h_point
 
             if h_l_to_h == 'yes':
-                # print('1h小转大'+ h_result + ' ' + l_result)
+                print('1h小转大： '+ h_result + ' ' + l_result)
                 mark_price = l_mark_price
                 l.iat[-1,5]='y'
                 result = 'yes'
+                l['direction'].iloc[-1]='max'
                 if l_point!='':
                     l.iat[-1, 6] = l_point
                 elif h_point!='':
                     l.iat[-1, 6] = h_point
             if l_l_to_h == 'yes':
-                # print('15m小转大： '+h_result + ' ' + l_result)
+                print('15m小转大： '+h_result + ' ' + l_result)
                 mark_price = l_mark_price
                 l.iat[-1,4]='y'
                 result = 'yes'
+                l['direction'].iloc[-1]='max'
                 if l_point!='':
                     l.iat[-1, 6] = l_point
                 elif h_point!='':
@@ -86,12 +89,12 @@ def first_test(normal,deal,line,index,level):
 
             str_4 = level[0] + ' macd不背离 '
             str_5 = level[1] + ' macd值不行 '
-            now_diff = df[df['diff'] > 0]["diff"].min() * 1.2
+            now_diff = df[df['diff'] > 0]["diff"].max() * 1.2
             now_macd = df[df['macd'] > 0]['macd'].sum() * 1.2
-            now_macd_min = df['macd'].min()
+            now_macd_max = df['macd'].max()
             last_macd = df_1[df_1['macd'] > 0]["macd"].sum()
-            last_macd_min = df_1['macd'].min()
-            last_diff = df_1[df_1['diff'] > 0]["diff"].min()
+            last_macd_max = df_1['macd'].max()
+            last_diff = df_1[df_1['diff'] > 0]["diff"].max()
 
             if __deal(now_macd, last_macd) == 1:
                 str_1 = level[0] + ' macd '
@@ -99,7 +102,7 @@ def first_test(normal,deal,line,index,level):
             if __deal(now_diff, last_diff) == 1:
                 str_2 = level[0] + ' diff '
                 flag += 1
-            macd_result = 1 if now_macd_min * 1.1 < last_macd_min else 0
+            macd_result = 1 if now_macd_max * 1.1 < last_macd_max else 0
             if macd_result == 1:
                 flag += 1
                 str_3 = level[0] + ' macd值 '
@@ -123,7 +126,7 @@ def first_test(normal,deal,line,index,level):
                     str_5 = level[1]+'  macd面积 '
                     l_flag += 1
                     l_to_h='yes'
-                if now_lowest_macd_vaule < 0 or now_lowest_macd_vaule < now_macd_min * 0.3:
+                if now_lowest_macd_vaule < 0 or now_lowest_macd_vaule < now_macd_max * 0.3:
                     l_flag += 1
                     str_6 = level[1] + ' macd严重背离 '
                     l_to_h='yes'
@@ -185,7 +188,7 @@ def measure(df,index):
             #不是最高点
             if df["key"].iloc[i]>df["key"].iloc[index]:
                 return -1
-            if df["key"].iloc[i]>df["key"].iloc[index] and df["key"].iloc[i-1]<df["key"].iloc[index-1]:
+            if df["key"].iloc[i]<df["key"].iloc[index] and df["key"].iloc[i-1]<df["key"].iloc[index-1]:
                 return i-1
     return -1
 

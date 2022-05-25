@@ -11,7 +11,8 @@ from chart import draw_kline
 import numpy as np
 from utils.small_to_large import check
 from utils.strategy_sell import strategy_test_sell
-from utils.util import read_first_record, read_buy_record, comp_loss, chaos, launch, vol_confirm, grid, judge_buy
+from utils.util import read_first_record, read_buy_record, comp_loss, chaos, launch, vol_confirm, grid, judge_buy, \
+    judge_sell
 import time
 
 def chart_test(df,deal,line):
@@ -55,8 +56,6 @@ def macd(df):
     df["ma60"] = talib.MA(df['close'], timeperiod=60)
     df["ma120"] = talib.MA(df['close'],timeperiod=120)
     df["ema5"] = talib.EMA(df['close'], timeperiod=5)
-    df["ema10"] = talib.EMA(df['close'], timeperiod=10)
-    df["ema20"] = talib.EMA(df['close'], timeperiod=20)
 
     return df
 
@@ -129,7 +128,7 @@ def test(type,api):
 
 
 
-    test_15 = real_data[:3000]
+    test_15 = real_data[5500:9000]
     test_15 = test_15.reset_index(drop=True)
     test_1h = import_csv(test_15, '1H','','init')
     test_4h = import_csv(test_15, '4H','','init')
@@ -165,7 +164,7 @@ def test(type,api):
     b =time.time()
 
 
-    for i, row in real_data[3000:].iterrows():
+    for i, row in real_data[9000:].iterrows():
         if i%500 ==0:
             print(test_15.iat[-1,0])
             grid_15_chart = chart_test(test_15_simple, test_15_deal, test_15_line)
@@ -198,7 +197,7 @@ def test(type,api):
         #
         # test_4h_line = find_line(test_4h_deal , test_4h_line)
 
-        if str(test_15.iat[-1,0]) == '2021-06-08 18:00:00':#震荡未识别 2021-12-18 21:30:00#为何买入 2022-04-25 11:45:00止损价 2022-04-30 00:00:00
+        if str(test_15.iat[-1,0]) == '2021-08-01 06:15:00':#震荡未识别 2021-12-18 21:30:00#为何买入 2022-04-25 11:45:00止损价 2022-04-30 00:00:00
             print(1)
         if str(test_15.iat[-1,0]) == '2021-11-28 06:15:00':#震荡未识别
             print(1)
@@ -224,27 +223,34 @@ def test(type,api):
             down_index = down_index[-1]
         else:
             down_index ='wrong'
-        if rise_index !='wrong' and record_first['flag'].iloc[rise_index] != 'no' and record_first['point'].iloc[-1]>test_15['low'].iloc[-1]:
+        if rise_index !='wrong' and record_first['flag'].iloc[rise_index] != 'no' and record_first['point'].iloc[rise_index]>test_15['low'].iloc[-1]:
             record_first['flag'].iloc[rise_index] = 'no'
-        if down_index !='wrong' and record_first['flag'].iloc[down_index] != 'no' and record_first['point'].iloc[-1]<test_15['low'].iloc[-1]:
+        if down_index !='wrong' and record_first['flag'].iloc[down_index] != 'no' and record_first['point'].iloc[down_index]<test_15['low'].iloc[-1]:
             record_first['flag'].iloc[down_index] = 'no'
 
-        if record_first['flag'].iloc[-1] == 'yes' and record_first['point'].iloc[-1]<test_15['low'].iloc[-1] < record_first['loss'].iloc[-1] != '':
-            record_first['flag'].iloc[-1] = ''
-            record_first['loss'].iloc[-1] = ''
-        judge_buy(test_15_line,record_first,test_15,test_15_deal)
-        long_to_gird_test(test_15_simple[-1500:].reset_index(drop=True),test_15[-1500:].reset_index(drop=True),test_15_deal,test_15_line,test_1h_line,record_first)
-        # if record_first['flag'].iloc[-1] == 'yes' and test_15['close'].iloc[-1] < test_15['close'].iloc[-19] :
-        #     print('准备网格 '+str(test_15.iat[-1, 0]) )
+        if rise_index !='wrong' and record_first['flag'].iloc[rise_index] == 'yes' and record_first['point'].iloc[rise_index]<test_15['low'].iloc[-1] < record_first['loss'].iloc[rise_index] != '':
+            record_first['flag'].iloc[rise_index] = ''
+            record_first['loss'].iloc[rise_index] = ''
 
-
-        if len(test_15_line) > 3 and len(record_first) > 1 and record_first['flag'].iloc[-1] != 'yes' and\
-                 chaos(test_15_deal,'rise') == True and record_first['flag'].iloc[-1] != 'no' and test_15_deal["flag"].iloc[-1] =='max':
-                sl, gird = grid(test_15_deal, 'rise')
-                if sl / test_15['close'].iloc[-1] > 0.005 and record_first['gird'].iloc[-1] != gird:
-                    print('网格: ' + str(test_15.iat[-1, 0]) + ' 点位:' + str(gird) + ' 密度:' + str(sl) + ' ' + str(
-                        gird + sl) + ' ' + str(gird + 2 * sl) + ' ' + str(gird - sl) + ' ' + str(gird - 2 * sl))
-                    record_first['gird'].iloc[-1] = gird
+        if down_index !='wrong' and record_first['flag'].iloc[down_index] == 'yes' and record_first['point'].iloc[down_index]>test_15['high'].iloc[-1] > record_first['loss'].iloc[down_index] != '':
+            record_first['flag'].iloc[down_index] = ''
+            record_first['loss'].iloc[down_index] = ''
+        if rise_index != 'wrong':
+            judge_buy(test_15_line,record_first,test_15,test_15_deal,rise_index)
+        if down_index != 'wrong':
+            judge_sell(test_15_line,record_first,test_15,test_15_deal,down_index)
+        # long_to_gird_test(test_15_simple[-1500:].reset_index(drop=True),test_15[-1500:].reset_index(drop=True),test_15_deal,test_15_line,test_1h_line,record_first)
+        # # if record_first['flag'].iloc[-1] == 'yes' and test_15['close'].iloc[-1] < test_15['close'].iloc[-19] :
+        # #     print('准备网格 '+str(test_15.iat[-1, 0]) )
+        #
+        #
+        # if len(test_15_line) > 3 and len(record_first) > 1 and record_first['flag'].iloc[-1] != 'yes' and\
+        #          chaos(test_15_deal,'rise') == True and record_first['flag'].iloc[-1] != 'no' and test_15_deal["flag"].iloc[-1] =='max':
+        #         sl, gird = grid(test_15_deal, 'rise')
+        #         if sl / test_15['close'].iloc[-1] > 0.005 and record_first['gird'].iloc[-1] != gird:
+        #             print('网格: ' + str(test_15.iat[-1, 0]) + ' 点位:' + str(gird) + ' 密度:' + str(sl) + ' ' + str(
+        #                 gird + sl) + ' ' + str(gird + 2 * sl) + ' ' + str(gird - sl) + ' ' + str(gird - 2 * sl))
+        #             record_first['gird'].iloc[-1] = gird
 
 
     grid_15_chart = chart_test(test_15_simple, test_15_deal, test_15_line)
