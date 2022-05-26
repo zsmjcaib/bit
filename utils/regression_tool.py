@@ -164,7 +164,7 @@ def test(type,api):
     b =time.time()
 
 
-    for i, row in real_data[3000:10000].iterrows():
+    for i, row in real_data[3000:20000].iterrows():
         if i%500 ==0:
             print(test_15.iat[-1,0])
             grid_15_chart = chart_test(test_15_simple, test_15_deal, test_15_line)
@@ -251,8 +251,13 @@ def test(type,api):
                 loss = record_first['loss'].iloc[rise_index]
                 if loss>test_15['low'].iloc[-1]:
                     loss = new_loss
+                #开启网格
+                sl, gird = grid(test_15_deal, 'rise')
+                if sl / test_15['close'].iloc[-1] > 0.005 and record_first['gird'].iloc[-1] != gird:
+
                 exchange = statistics(test_15,exchange,loss,'long')
                 record_first['flag'].iloc[rise_index] = 'yes'
+
         if down_index != 'wrong' and record_first['flag'].iloc[down_index] == 'prepare':
             result,new_loss = care(test_15_deal,test_15_line)
             if result:
@@ -263,6 +268,7 @@ def test(type,api):
                     loss = new_loss
                 exchange = statistics(test_15,exchange,loss,'short')
                 record_first['flag'].iloc[down_index] = 'yes'
+
         if rise_index != 'wrong' and record_first['flag'].iloc[rise_index] == '':
             result,loss = judge_buy(test_15_line,record_first,test_15,test_15_deal,rise_index)
             if result == 'special' or (type_V(test_15,test_15_deal,test_15_line) == True and result == 'normal'):
@@ -274,6 +280,7 @@ def test(type,api):
             elif result == 'normal':
                 record_first['flag'].iloc[rise_index] = 'prepare'
                 record_first['loss'].iloc[rise_index] = loss
+
         if down_index != 'wrong' and record_first['flag'].iloc[down_index] == '' :
             result,loss = judge_sell(test_15_line,record_first,test_15,test_15_deal,down_index)
             if result == 'special' or (type_V(test_15,test_15_deal,test_15_line) == True and result == 'normal')  :
