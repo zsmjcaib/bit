@@ -42,11 +42,11 @@ def read_first_record(path):
 
 def exchange_record(path):
     if not os.path.exists(path):
-        demo = pd.DataFrame(columns=['date', 'direction', 'price', 'loss', 'outstanding', 'balance','num'])
-        demo.loc[len(demo)] = ["", "", "", "", "",  "100000",""]
+        demo = pd.DataFrame(columns=['date', 'direction', 'price', 'loss', 'outstanding', 'balance','num','situation','close_price'])
+        demo.loc[len(demo)] = ["", "", "", "", "",  "100000","","",""]
     else:
-        demo = pd.DataFrame(columns=['date', 'direction', 'price', 'loss', 'outstanding', 'balance','num'])
-        demo.loc[len(demo)] = ["", "", "", "", "",  "100000",""]
+        demo = pd.DataFrame(columns=['date', 'direction', 'price', 'loss', 'outstanding', 'balance','num','situation','close_price'])
+        demo.loc[len(demo)] = ["", "", "", "", "",  "100000","","",""]
     return demo
 def comp_loss(normal,date,flag):
     index = normal[normal['date'] == date].index.tolist()[-1]
@@ -234,7 +234,7 @@ def statistics(test_15,exchange,loss,flag):
     else:
         num = -1*exchange['balance'].iloc[-1]/price*0.995
         balance = balance*1.995
-    new = pd.DataFrame({"date": test_15["date"].iloc[-1], "direction": flag, "price": test_15['close'].iloc[-1], "loss":loss,"outstanding":'no',"balance":balance,"num":num},index=[1])
+    new = pd.DataFrame({"date": test_15["date"].iloc[-1], "direction": flag, "price": test_15['close'].iloc[-1], "loss":loss,"outstanding":'no',"balance":balance,"num":num,"situation":"","close_price":""},index=[1])
     exchange = exchange.append(new, ignore_index=True)
     return exchange
 
@@ -245,16 +245,43 @@ def oustanding(test_15,exchange,situation):
     num = 0
     balance = int(exchange['balance'].iloc[-1])
     if situation=='active':
+        close_price = price
         if flag=='long':
-            balance = exchange['num'].iloc[-1]*price*0.995
+            balance = exchange['num'].iloc[-1]*close_price*0.995
         else:
-            balance = balance+exchange['num'].iloc[-1]*price*1.005
+            balance = balance+exchange['num'].iloc[-1]*close_price*1.005
     else:
+        close_price = loss
         if flag=='long':
-            balance = exchange['num'].iloc[-1]*loss*0.995
+            balance = exchange['num'].iloc[-1]*close_price*0.995
         else:
-            balance = balance+exchange['num'].iloc[-1]*loss*1.005
+            balance = balance+exchange['num'].iloc[-1]*close_price*1.005
 
-    new = pd.DataFrame({"date": test_15["date"].iloc[-1], "direction": flag, "price": test_15['close'].iloc[-1], "loss":loss,"outstanding":'yes',"balance":balance,"num":num},index=[1])
+    new = pd.DataFrame({"date": test_15["date"].iloc[-1], "direction": flag, "price": test_15['close'].iloc[-1], "loss":loss,"outstanding":'yes',"balance":balance,"num":num,"situation":situation,"close_price":close_price},index=[1])
     exchange = exchange.append(new, ignore_index=True)
     return exchange
+
+def type_V(normal,deal,line):
+    index = deal[line['key'].iloc[-1] == deal['key']].index.tolist()[-1]
+    #线段后面只有一个deal
+    if index == len(deal) - 2:
+        if line['flag'].iloc[-1] == 'rise':
+            normal_index = normal[normal['high'] == deal['key'].iloc[index]].index.tolist()[-1]
+        else:
+            normal_index = normal[normal['low'] == deal['key'].iloc[index]].index.tolist()[-1]
+        list_normal_pass=normal[normal_index-4:normal_index+1]['vol'].sort_values().tolist()
+        list_normal_now=normal[normal_index+1:]['vol'].sort_values().tolist()
+        if list_normal_pass[2] > normal['vol'].iloc[normal_index] * 2.5 and list_normal_pass[3] > normal['vol'].iloc[normal_index] * 2.5\
+        and  list_normal_now[2] > normal['vol'].iloc[normal_index] * 1.8 and list_normal_now[3] > normal['vol'].iloc[normal_index] * 1.8   :
+            return True
+    return False
+def care(deal,line):
+    deal_copy = copy.deepcopy(deal)
+    deal_copy.drop(deal_copy[deal_copy["temp"] == "temp"].index.tolist(), inplace=True)
+
+    index = deal[line['key'].iloc[-1] == deal['key']].index.tolist()[-1]
+    if index == len(deal_copy)-4:
+        return True,deal_copy['key'].iloc[-2]
+    return False,0
+
+

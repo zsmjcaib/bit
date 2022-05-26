@@ -418,7 +418,7 @@ def calculate(low,low_deal,low_line,test_1h,high,test_1h_line):
             l_flag, l_mark_price, l_result, l_l_to_h,_,l_point = first_test(low, low_deal, low_line, -1, ['15m','less_15m'])
             low_line.iat[-1, 7] = 'yes'
             if h_flag + l_flag > 4 :
-                # print(h_result + ' ' + l_result)
+                print(h_result + ' ' + l_result)
                 mark_price = l_mark_price
                 l.iat[-1,3]='y'
                 l.iat[-1,2]='y'
@@ -430,7 +430,7 @@ def calculate(low,low_deal,low_line,test_1h,high,test_1h_line):
                     l['point'].iloc[-1] = h_point
 
             if h_l_to_h == 'yes':
-                # print('1h小转大'+ h_result + ' ' + l_result)
+                print('1h小转大'+ h_result + ' ' + l_result)
                 mark_price = l_mark_price
                 l.iat[-1,5]='y'
                 l['direction'].iloc[-1]='min'
@@ -440,7 +440,7 @@ def calculate(low,low_deal,low_line,test_1h,high,test_1h_line):
                 elif h_point!='':
                     l['point'].iloc[-1] = h_point
             if l_l_to_h == 'yes':
-                # print('15m小转大： '+h_result + ' ' + l_result)
+                print('15m小转大： '+h_result + ' ' + l_result)
                 mark_price = l_mark_price
                 l.iat[-1,4]='y'
                 result = 'yes'

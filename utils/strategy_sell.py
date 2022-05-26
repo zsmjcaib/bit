@@ -5,7 +5,7 @@ from utils.util import judge_piont
 
 
 def strategy_test_sell(test_15_simple,test_15,test_15_deal,test_15_line,test_1h,test_1h_deal,test_1h_line,test_4h,test_4h_deal,test_4h_line):
-    l = pd.DataFrame({'date':'','first':'yes','15m':'','1h':'','15m小转大':'','1h小转大':'','point':'','is_gird':'','gird':'','sl':'','direction':''}, index=[1])
+    l = pd.DataFrame({'date':'','first':'yes','15m':'','1h':'','15m小转大':'','1h小转大':'','flag':'','loss':'','point':'','is_gird':'','gird':'','sl':'','direction':''}, index=[1])
     if  test_15_line['is_test'].iloc[-1]!='yes':
         index = test_15_simple[test_15_simple["date"] == test_15_line.iloc[-1]["date"]].index.tolist()[0]
         if index == len(test_15_simple) - 3:
@@ -24,7 +24,7 @@ def strategy_test_sell(test_15_simple,test_15,test_15_deal,test_15_line,test_1h,
     return l, 'no',0
 
 def calculate(low,low_deal,low_line,test_1h,high,test_1h_line):
-    l = pd.DataFrame({'date':'','first':'yes','15m':'','1h':'','15m小转大':'','1h小转大':'','point':'','is_gird':'','gird':'','sl':'','direction':''}, index=[1])
+    l = pd.DataFrame({'date':'','first':'yes','15m':'','1h':'','15m小转大':'','1h小转大':'','flag':'','loss':'','point':'','is_gird':'','gird':'','sl':'','direction':''}, index=[1])
     result = 'no'
     mark_price =0
     if low_line.iat[-1, 7] != 'yes':
@@ -39,10 +39,10 @@ def calculate(low,low_deal,low_line,test_1h,high,test_1h_line):
                 l.iat[-1,2]='y'
                 l['direction'].iloc[-1]='max'
                 result = 'yes'
-                if l_point!='':
-                    l.iat[-1, 6] = l_point
+                if l_point!='' and l_flag >2:
+                    l['point'].iloc[-1] = l_point
                 elif h_point!='':
-                    l.iat[-1, 6] = h_point
+                    l['point'].iloc[-1] = h_point
 
             if h_l_to_h == 'yes':
                 print('1h小转大： '+ h_result + ' ' + l_result)
@@ -51,9 +51,9 @@ def calculate(low,low_deal,low_line,test_1h,high,test_1h_line):
                 result = 'yes'
                 l['direction'].iloc[-1]='max'
                 if l_point!='':
-                    l.iat[-1, 6] = l_point
+                    l['point'].iloc[-1] = l_point
                 elif h_point!='':
-                    l.iat[-1, 6] = h_point
+                    l['point'].iloc[-1] = h_point
             if l_l_to_h == 'yes':
                 print('15m小转大： '+h_result + ' ' + l_result)
                 mark_price = l_mark_price
@@ -61,9 +61,9 @@ def calculate(low,low_deal,low_line,test_1h,high,test_1h_line):
                 result = 'yes'
                 l['direction'].iloc[-1]='max'
                 if l_point!='':
-                    l.iat[-1, 6] = l_point
+                    l['point'].iloc[-1] = l_point
                 elif h_point!='':
-                    l.iat[-1, 6] = h_point
+                    l['point'].iloc[-1] = h_point
 
     return l,result, mark_price
 

@@ -12,7 +12,7 @@ import numpy as np
 from utils.small_to_large import check
 from utils.strategy_sell import strategy_test_sell
 from utils.util import read_first_record, exchange_record, comp_loss, chaos, launch, vol_confirm, grid, judge_buy, \
-    judge_sell, statistics, oustanding
+    judge_sell, statistics, oustanding, type_V, care
 import time
 
 def chart_test(df,deal,line):
@@ -197,9 +197,9 @@ def test(type,api):
         #
         # test_4h_line = find_line(test_4h_deal , test_4h_line)
 
-        if str(test_15.iat[-1,0]) == '2021/6/8 7:45:00':#震荡未识别 2021-12-18 21:30:00#为何买入 2022-04-25 11:45:00止损价 2022-04-30 00:00:00
+        if str(test_15.iat[-1,0]) == '2021-06-21 21:30:00':#震荡未识别 2021-12-18 21:30:00#为何买入 2022-04-25 11:45:00止损价 2022-04-30 00:00:00
             print(1)
-        if str(test_15.iat[-1,0]) == '2021-11-28 06:15:00':#震荡未识别
+        if str(test_15.iat[-1,0]) == '2021-06-15 21:45:00':#震荡未识别
             print(1)
         if str(test_15.iat[-1,0]) == '2021-12-11 04:45:00':#震荡未识别
             print(1)
@@ -224,35 +224,80 @@ def test(type,api):
         else:
             down_index ='wrong'
 
-        if rise_index !='wrong' and record_first['flag'].iloc[rise_index] != 'no' and record_first['point'].iloc[rise_index]>test_15['low'].iloc[-1]:
-            record_first['flag'].iloc[rise_index] = 'no'
-        if down_index !='wrong' and record_first['flag'].iloc[down_index] != 'no' and record_first['point'].iloc[down_index]<test_15['low'].iloc[-1]:
-            record_first['flag'].iloc[down_index] = 'no'
-
-        if rise_index !='wrong' and record_first['flag'].iloc[rise_index] == 'yes' and record_first['point'].iloc[rise_index]<test_15['low'].iloc[-1] < record_first['loss'].iloc[rise_index] != '':
+        if rise_index !='wrong'  and record_first['flag'].iloc[rise_index] == ('yes' or 'prepare') and test_15['low'].iloc[-1] < record_first['loss'].iloc[rise_index] != '':
+            if exchange['direction'].iloc[-1] == 'long' and exchange['outstanding'].iloc[-1] == 'no':
+                exchange['loss'].iloc[-1]=record_first['loss'].iloc[rise_index]
+                exchange = oustanding(test_15, exchange, 'passive')
             record_first['flag'].iloc[rise_index] = ''
             record_first['loss'].iloc[rise_index] = ''
 
-        if down_index !='wrong' and record_first['flag'].iloc[down_index] == 'yes' and record_first['point'].iloc[down_index]>test_15['low'].iloc[-1] > record_first['loss'].iloc[down_index] != '':
+        if down_index !='wrong'  and record_first['flag'].iloc[down_index] == ('yes' or 'prepare') and test_15['high'].iloc[-1] > record_first['loss'].iloc[down_index] != '':
+            if exchange['direction'].iloc[-1] == 'short' and exchange['outstanding'].iloc[-1] == 'no':
+                exchange['loss'].iloc[-1] = record_first['loss'].iloc[down_index]
+                exchange = oustanding(test_15, exchange, 'passive')
             record_first['flag'].iloc[down_index] = ''
             record_first['loss'].iloc[down_index] = ''
-        if rise_index != 'wrong':
+
+        if rise_index !='wrong' and record_first['flag'].iloc[rise_index] != 'no' and record_first['point'].iloc[rise_index]>test_15['low'].iloc[-1]:
+            record_first['flag'].iloc[rise_index] = 'no'
+        if down_index !='wrong' and record_first['flag'].iloc[down_index] != 'no' and record_first['point'].iloc[down_index]<test_15['high'].iloc[-1]:
+            record_first['flag'].iloc[down_index] = 'no'
+
+        if rise_index != 'wrong' and record_first['flag'].iloc[rise_index] == 'prepare':
+            result, new_loss = care(test_15_deal, test_15_line)
+            if result:
+                if len(exchange)>1 and exchange['outstanding'].iloc[-1]=='no':
+                    exchange = oustanding(test_15,exchange,'active')
+                loss = record_first['loss'].iloc[rise_index]
+                if loss>test_15['low'].iloc[-1]:
+                    loss = new_loss
+                exchange = statistics(test_15,exchange,loss,'long')
+                record_first['flag'].iloc[rise_index] = 'yes'
+        if down_index != 'wrong' and record_first['flag'].iloc[down_index] == 'prepare':
+            result,new_loss = care(test_15_deal,test_15_line)
+            if result:
+                if len(exchange)>1 and exchange['outstanding'].iloc[-1]=='no':
+                    exchange = oustanding(test_15,exchange,'active')
+                loss = record_first['loss'].iloc[down_index]
+                if loss<test_15['high'].iloc[-1]:
+                    loss = new_loss
+                exchange = statistics(test_15,exchange,loss,'short')
+                record_first['flag'].iloc[down_index] = 'yes'
+        if rise_index != 'wrong' and record_first['flag'].iloc[rise_index] == '':
             result,loss = judge_buy(test_15_line,record_first,test_15,test_15_deal,rise_index)
-            if result!='no':
+            if result == 'special' or (type_V(test_15,test_15_deal,test_15_line) == True and result == 'normal'):
                 if len(exchange)>1 and exchange['outstanding'].iloc[-1]=='no':
                     exchange = oustanding(test_15,exchange,'active')
                 exchange = statistics(test_15,exchange,loss,'long')
-        if down_index != 'wrong':
+                record_first['flag'].iloc[rise_index] = 'yes'
+                record_first['loss'].iloc[rise_index] = loss
+            elif result == 'normal':
+                record_first['flag'].iloc[rise_index] = 'prepare'
+                record_first['loss'].iloc[rise_index] = loss
+        if down_index != 'wrong' and record_first['flag'].iloc[down_index] == '' :
             result,loss = judge_sell(test_15_line,record_first,test_15,test_15_deal,down_index)
-            if result!='no':
+            if result == 'special' or (type_V(test_15,test_15_deal,test_15_line) == True and result == 'normal')  :
                 if len(exchange)>1 and exchange['outstanding'].iloc[-1]=='no':
                     exchange = oustanding(test_15,exchange,'active')
                 exchange = statistics(test_15,exchange,loss,'short')
-        if exchange['outstanding'].iloc[-1]!='no':
-            if exchange['direction'].iloc[-1]=='long' and exchange['loss'].iloc[-1]<test_15['low'].iloc[-1]:
-                exchange = oustanding(test_15, exchange, 'passive')
-            elif exchange['direction'].iloc[-1]=='short' and exchange['loss'].iloc[-1]>test_15['high'].iloc[-1]:
-                exchange = oustanding(test_15, exchange, 'passive')
+                record_first['flag'].iloc[down_index] = 'yes'
+                record_first['loss'].iloc[down_index] = loss
+
+            elif result == 'normal':
+                record_first['flag'].iloc[down_index] = 'prepare'
+                record_first['loss'].iloc[down_index] = loss
+
+        if len(exchange)>1:
+            if exchange['loss'].iloc[-1]==31466.19 and exchange['direction'].iloc[-1]=='short':
+                print(test_15.iat[-1,0])
+
+
+
+        # if exchange['outstanding'].iloc[-1]!='no':
+        #     if exchange['direction'].iloc[-1]=='long' and exchange['loss'].iloc[-1]<test_15['low'].iloc[-1]:
+        #         exchange = oustanding(test_15, exchange, 'passive')
+        #     elif exchange['direction'].iloc[-1]=='short' and exchange['loss'].iloc[-1]>test_15['high'].iloc[-1]:
+        #         exchange = oustanding(test_15, exchange, 'passive')
 
         # long_to_gird_test(test_15_simple[-1500:].reset_index(drop=True),test_15[-1500:].reset_index(drop=True),test_15_deal,test_15_line,test_1h_line,record_first)
         # # if record_first['flag'].iloc[-1] == 'yes' and test_15['close'].iloc[-1] < test_15['close'].iloc[-19] :
