@@ -284,4 +284,13 @@ def care(deal,line):
         return True,deal_copy['key'].iloc[-2]
     return False,0
 
-
+def exchange_grid(gear,gird,sl,now_close):
+    if now_close < gird - sl * 2:
+        gear=-2
+        return gear
+    if now_close > gird + sl * 2:
+        gear=2
+        return gear
+    for i in range(-2, 3):
+        if gird + sl * (i) < now_close < gird + sl * (i + 1):
+            return i

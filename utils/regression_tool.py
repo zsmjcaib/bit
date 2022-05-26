@@ -12,7 +12,7 @@ import numpy as np
 from utils.small_to_large import check
 from utils.strategy_sell import strategy_test_sell
 from utils.util import read_first_record, exchange_record, comp_loss, chaos, launch, vol_confirm, grid, judge_buy, \
-    judge_sell, statistics, oustanding, type_V, care
+    judge_sell, statistics, oustanding, type_V, care, exchange_grid
 import time
 
 def chart_test(df,deal,line):
@@ -164,7 +164,7 @@ def test(type,api):
     b =time.time()
 
 
-    for i, row in real_data[3000:20000].iterrows():
+    for i, row in real_data[3000:].iterrows():
         if i%500 ==0:
             print(test_15.iat[-1,0])
             grid_15_chart = chart_test(test_15_simple, test_15_deal, test_15_line)
@@ -196,6 +196,7 @@ def test(type,api):
         # test_4h_deal = find_point(test_4h_simple, test_4h_deal)
         #
         # test_4h_line = find_line(test_4h_deal , test_4h_line)
+        now_close =test_15['close'].iloc[-1]
 
         if str(test_15.iat[-1,0]) == '2021-06-21 21:30:00':#震荡未识别 2021-12-18 21:30:00#为何买入 2022-04-25 11:45:00止损价 2022-04-30 00:00:00
             print(1)
@@ -253,10 +254,12 @@ def test(type,api):
                     loss = new_loss
                 #开启网格
                 sl, gird = grid(test_15_deal, 'rise')
-                if sl / test_15['close'].iloc[-1] > 0.005 and record_first['gird'].iloc[-1] != gird:
+                if sl / now_close > 0.005 and record_first['gird'].iloc[-1] != gird:
+                    record_first.loc[len(record_first)] = [str(test_15.iat[-1,0]),"", "","", "","","yes",loss,"","yes",grid,sl,0]
 
-                exchange = statistics(test_15,exchange,loss,'long')
-                record_first['flag'].iloc[rise_index] = 'yes'
+                else:
+                    exchange = statistics(test_15,exchange,loss,'long')
+                    record_first['flag'].iloc[rise_index] = 'yes'
 
         if down_index != 'wrong' and record_first['flag'].iloc[down_index] == 'prepare':
             result,new_loss = care(test_15_deal,test_15_line)
@@ -294,9 +297,27 @@ def test(type,api):
                 record_first['flag'].iloc[down_index] = 'prepare'
                 record_first['loss'].iloc[down_index] = loss
 
-        if len(exchange)>1:
-            if exchange['loss'].iloc[-1]==31466.19 and exchange['direction'].iloc[-1]=='short':
-                print(test_15.iat[-1,0])
+
+        if record_first['is_grid'].iloc[-1] =='yes':
+
+            gear = record_first['direction'].iloc[-1]
+            gird = record_first['grid'].iloc[-1]
+            temp1 =gear
+            temp2 =gear
+            sl = record_first['sl'].iloc[-1]
+            base_price = gird+sl*gear
+            new_gear = exchange_grid(gear,gird,sl,now_close)
+            while new_gear!=gear:
+                if new_gear>gear:
+
+
+
+
+
+
+        # if len(exchange)>1:
+        #     if exchange['loss'].iloc[-1]==31466.19 and exchange['direction'].iloc[-1]=='short':
+        #         print(test_15.iat[-1,0])
 
 
 
