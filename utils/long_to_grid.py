@@ -6,7 +6,7 @@ import copy
 
 
 
-def long_to_gird_test(test_15_simple,test_15,test_15_deal,test_15_line,test_1h_line,record_first):
+def long_to_grid_test(test_15_simple,test_15,test_15_deal,test_15_line,test_1h_line,record_first):
     if record_first['flag'].iloc[-1] == 'yes' and test_15['ma60'].iloc[-1] > test_15['ma5'].iloc[-1]:
         if chaos(test_15_deal,'down') == True:
             pass

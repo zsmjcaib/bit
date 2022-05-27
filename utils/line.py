@@ -117,8 +117,8 @@ def __deal(index, df, df_line):
                             return
 
         else:
-            if str(df_line.iat[-1,0]) == '2021-07-10 16:30:00':
-                print(df_line.iat[-1,0])
+            # if str(df_line.iat[-1,0]) == '2021-07-10 16:30:00':
+            #     print(df_line.iat[-1,0])
             # print(df_line.iat[-1, 0])
             #单独判断
             if df_line["temp"].iloc[-1] == "yes":
@@ -130,7 +130,9 @@ def __deal(index, df, df_line):
                     i += 2
                     continue
                 # 第一种情况
-                elif status(df_line,df,i) and df["key"].iloc[i + 3] >= df["key"].iloc[i + 1]:
+                # elif status(df_line,df,i) and df["key"].iloc[i + 3] >= df["key"].iloc[i + 1]:
+                elif  df["key"].iloc[i + 3] >= df["key"].iloc[i + 1]:
+
                     i,result = __first_case(i, df, df_line)
                     if result == "wrong":
                         return
@@ -148,7 +150,9 @@ def __deal(index, df, df_line):
                     continue
                 # 第一种情况
 
-                elif status(df_line,df,i) and df["key"].iloc[i + 3] <= df["key"].iloc[i + 1]:
+                # elif status(df_line,df,i) and df["key"].iloc[i + 3] <= df["key"].iloc[i + 1]:
+                elif  df["key"].iloc[i + 3] <= df["key"].iloc[i + 1]:
+
                     i,result = __first_case(i, df, df_line)
                     if result == "wrong":
                         return
@@ -294,8 +298,12 @@ def  __last(df, df_line,small_date,first_date,second_date,small ):
                 #有更高的
                 #判断更高的与现在之间有没有线段
                 if index +1 < low_index:
-                    df_line.loc[len(df_line)] = [df.iat[low_index, 0], df.iat[low_index, 1], "down", "temp", "", "", "", ""]
                     if low_index+2<i:
+                        df_line.loc[len(df_line)] = [df.iat[low_index, 0], df.iat[low_index, 1], "down", "temp", "", "","", ""]
+                        df_line.loc[len(df_line)] = [df.iat[i, 0], df.iat[i, 1], "rise", "temp", "", "", "", ""]
+                    else:
+                        #笔突破只取一个线段
+                        df_line.drop(df_line.tail(1).index, inplace=True)
                         df_line.loc[len(df_line)] = [df.iat[i, 0], df.iat[i, 1], "rise", "temp", "", "", "", ""]
                 else:
                     df_line.drop(df_line.tail(1).index, inplace=True)
@@ -337,8 +345,11 @@ def  __last(df, df_line,small_date,first_date,second_date,small ):
                     i = df["key"].iloc[index:].idxmin()
                     high_index = df["key"].iloc[index:i].idxmax()
                     if index + 1 < high_index:
-                        df_line.loc[len(df_line)] = [df.iat[high_index, 0], df.iat[high_index, 1], "rise", "temp", "", "","", ""]
                         if high_index + 2 < i:
+                            df_line.loc[len(df_line)] = [df.iat[high_index, 0], df.iat[high_index, 1], "rise", "temp","", "", "", ""]
+                            df_line.loc[len(df_line)] = [df.iat[i, 0], df.iat[i, 1], "down", "temp", "", "", "", ""]
+                        else:
+                            df_line.drop(df_line.tail(1).index, inplace=True)
                             df_line.loc[len(df_line)] = [df.iat[i, 0], df.iat[i, 1], "down", "temp", "", "", "", ""]
                     else:
                         df_line.drop(df_line.tail(1).index, inplace=True)
@@ -417,7 +428,11 @@ def check(df,df_line,i):
 
             if df['key'].iloc[j] > high:
                 # df_line.drop(df_line.tail(1).index,inplace=True)
-                df_line.iat[-1,3] = 'no'
+                if df['key'].iloc[i+2] <=low:
+                    df_line.drop(df_line.tail(1).index, inplace=True)
+                    df_line.loc[len(df_line)] = [df.iat[i + 2, 0], df.iat[i + 2, 1], "down", "no", "", "", "", ""]
+                else:
+                    df_line.iat[-1,3] = 'no'
                 return i
 
     else:
@@ -433,28 +448,32 @@ def check(df,df_line,i):
 
             if df['key'].iloc[j] < low:
                 # df_line.drop(df_line.tail(1).index,inplace=True)
-                df_line.iat[-1,3] = 'no'
+                if df['key'].iloc[i+2] >=high:
+                    df_line.drop(df_line.tail(1).index, inplace=True)
+                    df_line.loc[len(df_line)] = [df.iat[i + 2, 0], df.iat[i + 2, 1], "rise", "no", "", "", "", ""]
+                else:
+                    df_line.iat[-1,3] = 'no'
                 return i
     return i
 
-def status(df_line,df,i):
-    index = df[df["date"] == df_line.iat[-1, 0]].index.tolist()[0]
-    if df_line['flag'].iloc[-1] == 'rise':
-        for j in range(index ,i+4):
-            if df['key'].iloc[j]>=df["key"].iloc[i + 4]:
-                return True
-    else:
-        for j in range(index ,i+4):
-            if df['key'].iloc[j]<=df["key"].iloc[i + 4]:
-                return True
-    return False
+# def status(df_line,df,i):
+#     index = df[df["date"] == df_line.iat[-1, 0]].index.tolist()[0]
+#     if df_line['flag'].iloc[-1] == 'rise':
+#         for j in range(index ,i+4):
+#             if df['key'].iloc[j]>=df["key"].iloc[i + 4]:
+#                 return True
+#     else:
+#         for j in range(index ,i+4):
+#             if df['key'].iloc[j]<=df["key"].iloc[i + 4]:
+#                 return True
+#     return False
 
 if __name__ == '__main__':
-    with open('../config.yaml') as f:
-        content = yaml.load(f, Loader=yaml.FullLoader)
+    with open('api.yaml') as f:
+        api = yaml.load(f, Loader=yaml.FullLoader)
         f.close()
-    file=content['deal_30_path']+'688125.csv'
-    line = pd.DataFrame(columns=['date', 'key', 'flag', 'temp', 'small_to_large', 'first', 'second'])
+    file=api['test_'+str(type)]+'/deal_15m.csv'
+    line = pd.DataFrame(columns=['date', 'key', 'flag', 'temp','small_to_large','first','second','is_test'])
     df = pd.read_csv(file)
 
     find_line(df, line)

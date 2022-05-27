@@ -2,7 +2,7 @@ import pandas as pd
 import talib
 import os
 
-from utils.long_to_gird import long_to_gird_test
+from utils.long_to_grid import long_to_grid_test
 from utils.point import simpleTrend
 from utils.deal import find_point
 from utils.line import find_line
@@ -11,7 +11,7 @@ from chart import draw_kline
 import numpy as np
 from utils.small_to_large import check
 from utils.strategy_sell import strategy_test_sell
-from utils.util import read_first_record, exchange_record, comp_loss, chaos, launch, vol_confirm, grid, judge_buy, \
+from utils.util import read_first_record, exchange_record, comp_loss, chaos, launch, vol_confirm, start_grid, judge_buy, \
     judge_sell, statistics, oustanding, type_V, care, exchange_grid
 import time
 
@@ -164,7 +164,7 @@ def test(type,api):
     b =time.time()
 
 
-    for i, row in real_data[3000:].iterrows():
+    for i, row in real_data[3000:5000].iterrows():
         if i%500 ==0:
             print(test_15.iat[-1,0])
             grid_15_chart = chart_test(test_15_simple, test_15_deal, test_15_line)
@@ -198,11 +198,11 @@ def test(type,api):
         # test_4h_line = find_line(test_4h_deal , test_4h_line)
         now_close =test_15['close'].iloc[-1]
 
-        if str(test_15.iat[-1,0]) == '2021-06-21 21:30:00':#震荡未识别 2021-12-18 21:30:00#为何买入 2022-04-25 11:45:00止损价 2022-04-30 00:00:00
+        if str(test_15.iat[-1,0]) == '2021-06-09 06:45:00':#震荡未识别 2021-12-18 21:30:00#为何买入 2022-04-25 11:45:00止损价 2022-04-30 00:00:00
             print(1)
-        if str(test_15.iat[-1,0]) == '2021-06-15 21:45:00':#震荡未识别
+        if str(test_15.iat[-1,0]) == '2021-06-04 00:30:00':#震荡未识别
             print(1)
-        if str(test_15.iat[-1,0]) == '2021-12-11 04:45:00':#震荡未识别
+        if str(test_15.iat[-1,0]) == '2021-06-04 02:15:00':#震荡未识别
             print(1)
         if test_15_line['is_test'].iloc[-1] != 'yes':
             if test_15_line['flag'].iloc[-1] =='down':
@@ -253,8 +253,8 @@ def test(type,api):
                 if loss>test_15['low'].iloc[-1]:
                     loss = new_loss
                 #开启网格
-                sl, gird = grid(test_15_deal, 'rise')
-                if sl / now_close > 0.005 and record_first['gird'].iloc[-1] != gird:
+                sl, grid = start_grid(test_15_deal, 'rise')
+                if sl / now_close > 0.005 and record_first['grid'].iloc[-1] != grid:
                     record_first.loc[len(record_first)] = [str(test_15.iat[-1,0]),"", "","", "","","yes",loss,"","yes",grid,sl,0]
 
                 else:
@@ -269,8 +269,14 @@ def test(type,api):
                 loss = record_first['loss'].iloc[down_index]
                 if loss<test_15['high'].iloc[-1]:
                     loss = new_loss
-                exchange = statistics(test_15,exchange,loss,'short')
-                record_first['flag'].iloc[down_index] = 'yes'
+                # 开启网格
+                sl, grid = start_grid(test_15_deal, 'rise')
+                if sl / now_close > 0.005 and record_first['grid'].iloc[-1] != grid:
+                    record_first.loc[len(record_first)] = [str(test_15.iat[-1, 0]), "", "", "", "", "", "yes", loss,
+                                                           "", "yes", grid, sl, 0]
+                else:
+                    exchange = statistics(test_15,exchange,loss,'short')
+                    record_first['flag'].iloc[down_index] = 'yes'
 
         if rise_index != 'wrong' and record_first['flag'].iloc[rise_index] == '':
             result,loss = judge_buy(test_15_line,record_first,test_15,test_15_deal,rise_index)
@@ -301,14 +307,72 @@ def test(type,api):
         if record_first['is_grid'].iloc[-1] =='yes':
 
             gear = record_first['direction'].iloc[-1]
-            gird = record_first['grid'].iloc[-1]
-            temp1 =gear
-            temp2 =gear
+            grid = record_first['grid'].iloc[-1]
             sl = record_first['sl'].iloc[-1]
-            base_price = gird+sl*gear
-            new_gear = exchange_grid(gear,gird,sl,now_close)
-            while new_gear!=gear:
-                if new_gear>gear:
+            base_price = grid+sl*gear
+            new_gear = exchange_grid(gear,grid,sl,now_close)
+            balance = int(exchange['balance'].iloc[-1])
+            num = exchange['num'].iloc[-1]
+            if new_gear!=gear:
+                while new_gear!=gear:
+                    #减/沽
+                    if new_gear>gear:
+                        base_price = base_price + sl
+                        if gear==-2:
+                            num = num * 0.5
+                            balance = balance + num*base_price
+                            gear+=1
+                            continue
+                        elif gear ==-1:
+                            balance = balance + num*base_price
+                            num = 0
+                            gear+=1
+                            continue
+                        elif gear==0:
+                            num = -0.5*balance/base_price
+                            balance = balance*1.5
+                            gear+=1
+                            continue
+                        elif gear==1:
+                            jing = balance + num *base_price
+                            num = num - 0.5*(jing)/base_price
+                            balance = balance+0.5*(jing)
+                            gear+=1
+                            continue
+                    else:
+                        #买/平
+                        base_price = base_price - sl
+
+                        if gear ==-1:
+                            num = num + balance/base_price
+                            balance = 0
+                            gear-=1
+                            continue
+                        elif gear==0:
+                            num = 0.5*balance/base_price
+                            balance = balance*0.5
+                            gear-=1
+                            continue
+                        elif gear==1:
+                            balance = balance+num*base_price
+                            num = 0
+                            gear-=1
+                            continue
+                        elif gear==2:
+                            jing = balance +num*base_price
+                            num = num + jing*0.5/base_price
+                            balance = balance-jing*0.5
+                            gear-=1
+                            continue
+                new = pd.DataFrame(
+                    {"date": test_15["date"].iloc[-1], "direction": gear, "price": test_15['close'].iloc[-1], "loss": "",
+                     "outstanding": 'no', "balance": balance, "num": num, "situation": "active", "close_price": ""}, index=[1])
+                exchange = exchange.append(new, ignore_index=True)
+                record_first['direction'].iloc[-1] = gear
+
+
+
+
 
 
 
@@ -327,18 +391,18 @@ def test(type,api):
         #     elif exchange['direction'].iloc[-1]=='short' and exchange['loss'].iloc[-1]>test_15['high'].iloc[-1]:
         #         exchange = oustanding(test_15, exchange, 'passive')
 
-        # long_to_gird_test(test_15_simple[-1500:].reset_index(drop=True),test_15[-1500:].reset_index(drop=True),test_15_deal,test_15_line,test_1h_line,record_first)
+        # long_to_grid_test(test_15_simple[-1500:].reset_index(drop=True),test_15[-1500:].reset_index(drop=True),test_15_deal,test_15_line,test_1h_line,record_first)
         # # if record_first['flag'].iloc[-1] == 'yes' and test_15['close'].iloc[-1] < test_15['close'].iloc[-19] :
         # #     print('准备网格 '+str(test_15.iat[-1, 0]) )
         #
         #
         # if len(test_15_line) > 3 and len(record_first) > 1 and record_first['flag'].iloc[-1] != 'yes' and\
         #          chaos(test_15_deal,'rise') == True and record_first['flag'].iloc[-1] != 'no' and test_15_deal["flag"].iloc[-1] =='max':
-        #         sl, gird = grid(test_15_deal, 'rise')
-        #         if sl / test_15['close'].iloc[-1] > 0.005 and record_first['gird'].iloc[-1] != gird:
-        #             print('网格: ' + str(test_15.iat[-1, 0]) + ' 点位:' + str(gird) + ' 密度:' + str(sl) + ' ' + str(
-        #                 gird + sl) + ' ' + str(gird + 2 * sl) + ' ' + str(gird - sl) + ' ' + str(gird - 2 * sl))
-        #             record_first['gird'].iloc[-1] = gird
+        #         sl, grid = grid(test_15_deal, 'rise')
+        #         if sl / test_15['close'].iloc[-1] > 0.005 and record_first['grid'].iloc[-1] != grid:
+        #             print('网格: ' + str(test_15.iat[-1, 0]) + ' 点位:' + str(grid) + ' 密度:' + str(sl) + ' ' + str(
+        #                 grid + sl) + ' ' + str(grid + 2 * sl) + ' ' + str(grid - sl) + ' ' + str(grid - 2 * sl))
+        #             record_first['grid'].iloc[-1] = grid
 
 
     grid_15_chart = chart_test(test_15_simple, test_15_deal, test_15_line)

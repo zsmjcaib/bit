@@ -32,10 +32,10 @@ def stock_macd(df):
 
 def read_first_record(path):
     if not os.path.exists(path ):
-        demo = pd.DataFrame(columns=['date','first','15m','1h','15m小转大','1h小转大','flag','loss','point','is_gird','gird','sl','direction'])
+        demo = pd.DataFrame(columns=['date','first','15m','1h','15m小转大','1h小转大','flag','loss','point','is_grid','grid','sl','direction'])
         demo.loc[len(demo)] = [ "1997","", "","", "","","","","","","","",""]
     else:
-        demo = pd.DataFrame(columns=['date', 'first', '15m', '1h', '15m小转大', '1h小转大', 'flag','loss','point','is_gird','gird','sl','direction'])
+        demo = pd.DataFrame(columns=['date', 'first', '15m', '1h', '15m小转大', '1h小转大', 'flag','loss','point','is_grid','grid','sl','direction'])
         demo.loc[len(demo)] = [ "1997","", "","", "","","","","","","","",""]
         # demo = pd.read_csv(path )
     return demo
@@ -124,14 +124,15 @@ def vol_confirm(normal):
         return True
     return False
 
-def grid(deal,flag):
+def start_grid(deal,flag):
     temp = copy.deepcopy(deal[-20:])
     if flag == 'rise':
         if temp["temp"].iloc[-1] =='yes' and temp["flag"].iloc[-1] =='min':
             temp.drop(temp.tail(1).index,inplace=True)
         max4, min4, max3, min3, max2, min2, max1, min1 = temp['key'][-9:-1]
-        return find_gird(max4, min4, max3, min3, max2, min2, max1, min1)
-def find_gird(max4, min4, max3, min3, max2, min2, max1, min1):
+        return find_grid(max4, min4, max3, min3, max2, min2, max1, min1)
+
+def find_grid(max4, min4, max3, min3, max2, min2, max1, min1):
     abs1 = abs(max1 - min1)
     abs2 = abs(max2 - min2)
     abs3 = abs(max3 - min3)
@@ -139,8 +140,9 @@ def find_gird(max4, min4, max3, min3, max2, min2, max1, min1):
     l = [abs1,abs2,abs3,abs4]
     l.sort(reverse = True)
     sl =round((l[1]+l[2])/6,2)
-    gird = round(abs(max1 + min1)/2,2)
-    return sl,gird
+    grid = round(abs(max1 + min1)/2,2)
+    return sl,grid
+
 def judge_buy(test_15_line,record_first,test_15,test_15_deal,rise_index):
     if len(test_15_line) > 3 and len(record_first) > 1 and record_first['flag'].iloc[rise_index] != 'yes' and\
             test_15['close'].iloc[-1] > test_15['close'].iloc[-20] \
@@ -284,13 +286,13 @@ def care(deal,line):
         return True,deal_copy['key'].iloc[-2]
     return False,0
 
-def exchange_grid(gear,gird,sl,now_close):
-    if now_close < gird - sl * 2:
+def exchange_grid(gear,grid,sl,now_close):
+    if now_close < grid - sl * 2:
         gear=-2
         return gear
-    if now_close > gird + sl * 2:
+    if now_close > grid + sl * 2:
         gear=2
         return gear
     for i in range(-2, 3):
-        if gird + sl * (i) < now_close < gird + sl * (i + 1):
-            return i
+        if grid + sl * (i) < now_close <= grid + sl * (i + 2):
+            return i+1
