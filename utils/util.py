@@ -32,21 +32,21 @@ def stock_macd(df):
 
 def read_first_record(path):
     if not os.path.exists(path ):
-        demo = pd.DataFrame(columns=['date','first','15m','1h','15m小转大','1h小转大','flag','loss','point','is_grid','grid','sl','direction'])
+        demo = pd.DataFrame(columns=['date','gear','15m','1h','15m小转大','1h小转大','flag','loss','point','is_grid','grid','sl','direction'])
         demo.loc[len(demo)] = [ "1997","", "","", "","","","","","","","",""]
     else:
-        demo = pd.DataFrame(columns=['date', 'first', '15m', '1h', '15m小转大', '1h小转大', 'flag','loss','point','is_grid','grid','sl','direction'])
+        demo = pd.DataFrame(columns=['date', 'gear', '15m', '1h', '15m小转大', '1h小转大', 'flag','loss','point','is_grid','grid','sl','direction'])
         demo.loc[len(demo)] = [ "1997","", "","", "","","","","","","","",""]
         # demo = pd.read_csv(path )
     return demo
 
 def exchange_record(path):
     if not os.path.exists(path):
-        demo = pd.DataFrame(columns=['date', 'direction', 'price', 'loss', 'outstanding', 'balance','num','situation','close_price'])
-        demo.loc[len(demo)] = ["", "", "", "", "",  "100000","","",""]
+        demo = pd.DataFrame(columns=['date', 'direction', 'price', 'loss', 'outstanding', 'balance','num','situation','close_price','assets'])
+        demo.loc[len(demo)] = ["", "", "", "", "",  100000,0,"","",""]
     else:
-        demo = pd.DataFrame(columns=['date', 'direction', 'price', 'loss', 'outstanding', 'balance','num','situation','close_price'])
-        demo.loc[len(demo)] = ["", "", "", "", "",  "100000","","",""]
+        demo = pd.DataFrame(columns=['date', 'direction', 'price', 'loss', 'outstanding', 'balance','num','situation','close_price','assets'])
+        demo.loc[len(demo)] = ["", "", "", "", "",  100000,0,"","",""]
     return demo
 def comp_loss(normal,date,flag):
     index = normal[normal['date'] == date].index.tolist()[-1]
@@ -106,15 +106,16 @@ def launch(normal,flag):
     l = [-1,-3,-4,-5]
     if flag == 'rise':
         for i in range(0,len(l)-1):
-            if normal['ma5'].iloc[l[i]]<normal['ma5'].iloc[l[i+1]] or normal['ma10'].iloc[l[i]]<normal['ma10'].iloc[l[i+1]]\
-                or normal['ma20'].iloc[l[i]]<normal['ma20'].iloc[l[i+1]]:
+            if normal['ma5'].iloc[l[i]]<normal['ma5'].iloc[l[i+1]] or normal['ma10'].iloc[l[i]]<normal['ma10'].iloc[l[i+1]]:
+
+                # or normal['ma20'].iloc[l[i]]<normal['ma20'].iloc[l[i+1]]: 忽略20日
                 return False
             else:
                 continue
     else:
         for i in range(0,len(l)-1):
-            if normal['ma5'].iloc[l[i]]>normal['ma5'].iloc[l[i+1]] or normal['ma10'].iloc[l[i]]>normal['ma10'].iloc[l[i+1]]\
-                or normal['ma20'].iloc[l[i]]>normal['ma20'].iloc[l[i+1]]:
+            if normal['ma5'].iloc[l[i]]>normal['ma5'].iloc[l[i+1]] or normal['ma10'].iloc[l[i]]>normal['ma10'].iloc[l[i+1]]:
+                # or normal['ma20'].iloc[l[i]]>normal['ma20'].iloc[l[i+1]]:
                 return False
             else:
                 continue
@@ -140,7 +141,7 @@ def find_grid(max4, min4, max3, min3, max2, min2, max1, min1):
     l = [abs1,abs2,abs3,abs4]
     l.sort(reverse = True)
     sl =round((l[1]+l[2])/6,2)
-    grid = round(abs(max1 + min1)/2,2)
+    grid = round((max1 + min1)/4+(max2+min2)/6+(max3+min3)/12,2)
     return sl,grid
 
 def judge_buy(test_15_line,record_first,test_15,test_15_deal,rise_index):
@@ -192,7 +193,7 @@ def judge_sell(test_15_line,record_first,test_15,test_15_deal,down_index):
                     return 'normal',loss
 
             else:
-                if test_15['ma5'].iloc[-1]<test_15['ma10'].iloc[-1]<test_15['ma20'].iloc[-1] \
+                if test_15['ma5'].iloc[-1]<test_15['ma20'].iloc[-1] \
                         and test_15['ma5'].iloc[-1]<test_15['ma60'].iloc[-1] and test_15['ma5'].iloc[-1]<test_15['ma120'].iloc[-1]:
                     if launch(test_15,'down') and vol_confirm(test_15) and test_15['short'].iloc[-1]>0.1:
                         loss = comp_loss(test_15,record_first.iat[down_index,0],'down')
@@ -228,38 +229,36 @@ def judge_piont(l_simple,h_line,index):
 
 def statistics(test_15,exchange,loss,flag):
     price = test_15['close'].iloc[-1]
-    balance = int(exchange['balance'].iloc[-1])
-
+    balance = float(exchange['balance'].iloc[-1])
+    num = float(exchange['num'].iloc[-1])
     if flag =='long':
-        num = balance/price*0.995
+        num = num + balance/price*0.995
         balance = 0
     else:
-        num = -1*exchange['balance'].iloc[-1]/price*0.995
-        balance = balance*1.995
-    new = pd.DataFrame({"date": test_15["date"].iloc[-1], "direction": flag, "price": test_15['close'].iloc[-1], "loss":loss,"outstanding":'no',"balance":balance,"num":num,"situation":"","close_price":""},index=[1])
+        assets = balance + num * price
+        num = -1*(2*assets - balance)/price*1.005
+        balance = 2*assets
+
+    assets = balance+num*price
+    new = pd.DataFrame({"date": test_15["date"].iloc[-1], "direction": flag, "price": test_15['close'].iloc[-1], "loss":loss,"outstanding":'no',"balance":balance,"num":num,"situation":"","close_price":"","assets":assets},index=[1])
     exchange = exchange.append(new, ignore_index=True)
     return exchange
 
+#结算
 def oustanding(test_15,exchange,situation):
     flag = exchange['direction'].iloc[-1]
     price = test_15['close'].iloc[-1]
     loss = exchange['loss'].iloc[-1]
-    num = 0
-    balance = int(exchange['balance'].iloc[-1])
+    num = exchange['num'].iloc[-1]
+    balance = float(exchange['balance'].iloc[-1])
     if situation=='active':
         close_price = price
-        if flag=='long':
-            balance = exchange['num'].iloc[-1]*close_price*0.995
-        else:
-            balance = balance+exchange['num'].iloc[-1]*close_price*1.005
+        balance = balance+num*close_price-abs(num)*close_price*0.005
     else:
         close_price = loss
-        if flag=='long':
-            balance = exchange['num'].iloc[-1]*close_price*0.995
-        else:
-            balance = balance+exchange['num'].iloc[-1]*close_price*1.005
+        balance = balance+num*close_price-abs(num)*close_price*0.005
 
-    new = pd.DataFrame({"date": test_15["date"].iloc[-1], "direction": flag, "price": test_15['close'].iloc[-1], "loss":loss,"outstanding":'yes',"balance":balance,"num":num,"situation":situation,"close_price":close_price},index=[1])
+    new = pd.DataFrame({"date": test_15["date"].iloc[-1], "direction": flag, "price": test_15['close'].iloc[-1], "loss":loss,"outstanding":'yes',"balance":balance,"num":"0","situation":situation,"close_price":close_price,"assets":balance},index=[1])
     exchange = exchange.append(new, ignore_index=True)
     return exchange
 
@@ -287,12 +286,46 @@ def care(deal,line):
     return False,0
 
 def exchange_grid(gear,grid,sl,now_close):
-    if now_close < grid - sl * 2:
-        gear=-2
-        return gear
-    if now_close > grid + sl * 2:
-        gear=2
-        return gear
-    for i in range(-2, 3):
-        if grid + sl * (i) < now_close <= grid + sl * (i + 2):
-            return i+1
+    # if now_close < grid - sl * 2:
+    #     gear=-2
+    #     return gear
+    # if now_close > grid + sl * 2:
+    #     gear=2
+    #     return gear
+    #低于原值
+    if (grid +sl *gear)>=now_close:
+        for i in range(-2, gear):
+            if (grid +sl *i)>=now_close:
+                return i
+    else:
+        for i in range(2,gear,-1):
+            if (grid +sl *i)<=now_close:
+                return i
+    return gear
+
+def grid_to_long(normal):
+    if normal['close'].iloc[-1] > normal['close'].iloc[-20]  and normal['close'].iloc[-1] > normal['close'].iloc[-19]:
+        if (normal['ma5'].iloc[-1] > normal['ma10'].iloc[-1] or normal['close'].iloc[-1] > normal['close'].iloc[
+            -5]) and normal['ema5'].iloc[-1] < normal['close'].iloc[-1] \
+                and (normal['open'].iloc[-1] < normal['close'].iloc[-1] or normal['close'].iloc[-1] > (
+                normal['open'].iloc[-1] + normal['close'].iloc[-1]) / 2):
+            if normal['ma5'].iloc[-1] > normal['ma20'].iloc[-1] \
+                    and normal['ma5'].iloc[-1] > normal['ma60'].iloc[-1] and normal['ma5'].iloc[-1] >normal['ma120'].iloc[-1]:
+                if launch(normal, 'rise') and vol_confirm(normal) and normal['short'].iloc[-1] > 0.1:
+                    return True
+    return False
+
+def grid_to_sell(normal):
+    #20向下
+    if normal['close'].iloc[-1] < normal['close'].iloc[-20] and normal['close'].iloc[-1] < normal['close'].iloc[-19]  :
+        #短期空头
+        if (normal['ma5'].iloc[-1] < normal['ma10'].iloc[-1] or normal['close'].iloc[-1] < normal['close'].iloc[ -5]) \
+                and normal['ema5'].iloc[-1] > normal['close'].iloc[-1] and (normal['open'].iloc[-1] > normal['close'].iloc[-1]
+                 or normal['close'].iloc[-1] < ( normal['open'].iloc[-1] + normal['close'].iloc[-1]) / 2):
+            #5日击破所有均线
+            if normal['ma5'].iloc[-1] < normal['ma20'].iloc[-1] \
+                    and normal['ma5'].iloc[-1] < normal['ma60'].iloc[-1] and normal['ma5'].iloc[-1] <normal['ma120'].iloc[-1]:
+                #成交量 动量确认
+                if launch(normal, 'down') and vol_confirm(normal) and normal['short'].iloc[-1] > 0.1:
+                    return True
+    return False

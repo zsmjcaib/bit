@@ -12,7 +12,7 @@ import numpy as np
 from utils.small_to_large import check
 from utils.strategy_sell import strategy_test_sell
 from utils.util import read_first_record, exchange_record, comp_loss, chaos, launch, vol_confirm, start_grid, judge_buy, \
-    judge_sell, statistics, oustanding, type_V, care, exchange_grid
+    judge_sell, statistics, oustanding, type_V, care, exchange_grid, grid_to_long, grid_to_sell
 import time
 
 def chart_test(df,deal,line):
@@ -128,7 +128,7 @@ def test(type,api):
 
 
 
-    test_15 = real_data[:3000]
+    test_15 = real_data[:4000]
     test_15 = test_15.reset_index(drop=True)
     test_1h = import_csv(test_15, '1H','','init')
     test_4h = import_csv(test_15, '4H','','init')
@@ -138,9 +138,9 @@ def test(type,api):
     test_4h_simple = test_4h.iloc[0:10, 0:7].copy()
 
     if not os.path.exists(test_deal_15_path ):
-        test_15_deal = pd.DataFrame(columns=['date','key','flag','temp'])
-        test_1h_deal = pd.DataFrame(columns=['date','key','flag','temp'])
-        test_4h_deal = pd.DataFrame(columns=['date','key','flag','temp'])
+        test_15_deal = pd.DataFrame(columns=['date','key','flag','temp','is_test'])
+        test_1h_deal = pd.DataFrame(columns=['date','key','flag','temp','is_test'])
+        test_4h_deal = pd.DataFrame(columns=['date','key','flag','temp','is_test'])
         test_15_line = pd.DataFrame(columns=['date', 'key', 'flag', 'temp','small_to_large','first','second','is_test'])
         test_1h_line = pd.DataFrame(columns=['date', 'key', 'flag', 'temp','small_to_large','first','second','is_test'])
         test_4h_line = pd.DataFrame(columns=['date', 'key', 'flag', 'temp','small_to_large','first','second','is_test'])
@@ -164,7 +164,7 @@ def test(type,api):
     b =time.time()
 
 
-    for i, row in real_data[3000:5000].iterrows():
+    for i, row in real_data[4000:5000].iterrows():
         if i%500 ==0:
             print(test_15.iat[-1,0])
             grid_15_chart = chart_test(test_15_simple, test_15_deal, test_15_line)
@@ -197,12 +197,13 @@ def test(type,api):
         #
         # test_4h_line = find_line(test_4h_deal , test_4h_line)
         now_close =test_15['close'].iloc[-1]
-
-        if str(test_15.iat[-1,0]) == '2021-06-09 06:45:00':#震荡未识别 2021-12-18 21:30:00#为何买入 2022-04-25 11:45:00止损价 2022-04-30 00:00:00
+        date = str(test_15.iat[-1,0])
+        close_price = test_15['close'].iloc[-1]
+        if date == '2021-06-09 03:00:00':#震荡未识别 2021-12-18 21:30:00#为何买入 2022-04-25 11:45:00止损价 2022-04-30 00:00:00
             print(1)
-        if str(test_15.iat[-1,0]) == '2021-06-04 00:30:00':#震荡未识别
+        if date == '2021-06-10 04:45:00':#震荡未识别
             print(1)
-        if str(test_15.iat[-1,0]) == '2021-06-04 02:15:00':#震荡未识别
+        if date == '2021-06-10 05:00:00':#震荡未识别
             print(1)
         if test_15_line['is_test'].iloc[-1] != 'yes':
             if test_15_line['flag'].iloc[-1] =='down':
@@ -214,15 +215,15 @@ def test(type,api):
             if  result == 'yes':
                 record_first = record_first.append(l, ignore_index=True)
                 record_first.iat[-1,0] = str(test_15_line.iat[-1,0])
-        rise_index = record_first[record_first['direction'] == 'min'].index.tolist()
-        down_index = record_first[record_first['direction'] == 'max'].index.tolist()
-        if len(rise_index)>0:
-            rise_index = rise_index[-1]
-        else:
+
+
+        try:
+            rise_index = record_first[record_first['direction'] == 'min'].index.tolist()[-1]
+        except:
             rise_index ='wrong'
-        if len(down_index) > 0:
-            down_index = down_index[-1]
-        else:
+        try:
+            down_index = record_first[record_first['direction'] == 'max'].index.tolist()[-1]
+        except:
             down_index ='wrong'
 
         if rise_index !='wrong'  and record_first['flag'].iloc[rise_index] == ('yes' or 'prepare') and test_15['low'].iloc[-1] < record_first['loss'].iloc[rise_index] != '':
@@ -239,9 +240,11 @@ def test(type,api):
             record_first['flag'].iloc[down_index] = ''
             record_first['loss'].iloc[down_index] = ''
 
-        if rise_index !='wrong' and record_first['flag'].iloc[rise_index] != 'no' and record_first['point'].iloc[rise_index]>test_15['low'].iloc[-1]:
+        if rise_index !='wrong' and record_first['flag'].iloc[rise_index] != 'no' and record_first['point'].iloc[rise_index]!=''\
+                and record_first['point'].iloc[rise_index]>test_15['low'].iloc[-1]:
             record_first['flag'].iloc[rise_index] = 'no'
-        if down_index !='wrong' and record_first['flag'].iloc[down_index] != 'no' and record_first['point'].iloc[down_index]<test_15['high'].iloc[-1]:
+        if down_index !='wrong' and record_first['flag'].iloc[down_index] != 'no' and record_first['point'].iloc[rise_index]!=''\
+                and record_first['point'].iloc[down_index]<test_15['high'].iloc[-1]:
             record_first['flag'].iloc[down_index] = 'no'
 
         if rise_index != 'wrong' and record_first['flag'].iloc[rise_index] == 'prepare':
@@ -255,7 +258,9 @@ def test(type,api):
                 #开启网格
                 sl, grid = start_grid(test_15_deal, 'rise')
                 if sl / now_close > 0.005 and record_first['grid'].iloc[-1] != grid:
-                    record_first.loc[len(record_first)] = [str(test_15.iat[-1,0]),"", "","", "","","yes",loss,"","yes",grid,sl,0]
+                    record_first.loc[len(record_first)] = [date,0, "","", "","","yes",loss,record_first['point'].iloc[rise_index],"yes",grid,sl,""]
+                    print('网格: ' + str(test_15.iat[-1, 0]) + ' 点位:' + str(grid) + ' 密度:' + str(sl) + ' ' + str(
+                        grid + sl) + ' ' + str(grid + 2 * sl) + ' ' + str(grid - sl) + ' ' + str(grid - 2 * sl))
 
                 else:
                     exchange = statistics(test_15,exchange,loss,'long')
@@ -272,8 +277,10 @@ def test(type,api):
                 # 开启网格
                 sl, grid = start_grid(test_15_deal, 'rise')
                 if sl / now_close > 0.005 and record_first['grid'].iloc[-1] != grid:
-                    record_first.loc[len(record_first)] = [str(test_15.iat[-1, 0]), "", "", "", "", "", "yes", loss,
-                                                           "", "yes", grid, sl, 0]
+                    record_first.loc[len(record_first)] = [date, 0, "", "", "", "", "yes", loss,
+                                                           record_first['point'].iloc[down_index], "yes", grid, sl, ""]
+                    print('网格: ' + str(test_15.iat[-1, 0]) + ' 点位:' + str(grid) + ' 密度:' + str(sl) + ' ' + str(
+                        grid + sl) + ' ' + str(grid + 2 * sl) + ' ' + str(grid - sl) + ' ' + str(grid - 2 * sl))
                 else:
                     exchange = statistics(test_15,exchange,loss,'short')
                     record_first['flag'].iloc[down_index] = 'yes'
@@ -303,16 +310,14 @@ def test(type,api):
                 record_first['flag'].iloc[down_index] = 'prepare'
                 record_first['loss'].iloc[down_index] = loss
 
-
         if record_first['is_grid'].iloc[-1] =='yes':
-
-            gear = record_first['direction'].iloc[-1]
+            gear = record_first['gear'].iloc[-1]
             grid = record_first['grid'].iloc[-1]
             sl = record_first['sl'].iloc[-1]
             base_price = grid+sl*gear
             new_gear = exchange_grid(gear,grid,sl,now_close)
-            balance = int(exchange['balance'].iloc[-1])
-            num = exchange['num'].iloc[-1]
+            balance = float(exchange['balance'].iloc[-1])
+            num =  float(exchange['num'].iloc[-1])
             if new_gear!=gear:
                 while new_gear!=gear:
                     #减/沽
@@ -349,7 +354,7 @@ def test(type,api):
                             gear-=1
                             continue
                         elif gear==0:
-                            num = 0.5*balance/base_price
+                            num = num+0.5*balance/base_price
                             balance = balance*0.5
                             gear-=1
                             continue
@@ -364,11 +369,39 @@ def test(type,api):
                             balance = balance-jing*0.5
                             gear-=1
                             continue
+                assets = balance + num * close_price
                 new = pd.DataFrame(
                     {"date": test_15["date"].iloc[-1], "direction": gear, "price": test_15['close'].iloc[-1], "loss": "",
-                     "outstanding": 'no', "balance": balance, "num": num, "situation": "active", "close_price": ""}, index=[1])
+                     "outstanding": 'no', "balance": balance, "num": num, "situation": "active", "close_price": close_price,"assets":assets}, index=[1])
                 exchange = exchange.append(new, ignore_index=True)
-                record_first['direction'].iloc[-1] = gear
+                record_first['gear'].iloc[-1] = gear
+
+        if record_first['is_grid'].iloc[-1] == 'yes':
+            if grid_to_long(test_15):
+                loss = test_15_deal['key'].iloc[-2]
+                print('buy: ' + str(test_15.iat[-1, 0]) + ' price: ' + str(test_15['close'].iloc[-1]) + ' loss: ' + str(
+                    loss) + '网格转梭多' + ' ' + str(test_15['short'].iloc[-1]))
+                l = pd.DataFrame(
+                    {'date': date, 'gear': '', '15m': '', '1h': '', '15m小转大': '', '1h小转大': '', 'flag': 'yes', 'loss': loss,
+                     'point':  record_first['point'].iloc[-1], 'is_grid': '', 'grid': '', 'sl': '', 'direction': 'min'}, index=[1])
+                record_first = record_first.append(l, ignore_index=True)
+                # exchange = oustanding(test_15, exchange, 'active')
+                exchange = statistics(test_15,exchange,loss,'long')
+                test_15_deal['is_test'].iloc[-2]='yes'
+                test_15_deal['long_or_sell'].iloc[-2]='yes'
+
+            elif grid_to_sell(test_15):
+                loss = test_15_deal['key'].iloc[-2]
+                print('sell: ' + str(test_15.iat[-1, 0]) + ' price: ' + str(test_15['close'].iloc[-1]) + ' loss: ' + str(
+                    loss) + '网格转梭空' + ' ' + str(test_15['short'].iloc[-1]))
+                l = pd.DataFrame(
+                    {'date': date, 'gear': '', '15m': '', '1h': '', '15m小转大': '', '1h小转大': '', 'flag': 'yes', 'loss': loss,
+                     'point': record_first['point'].iloc[-1], 'is_grid': '', 'grid': '', 'sl': '', 'direction': 'max'}, index=[1])
+                record_first = record_first.append(l, ignore_index=True)
+                # exchange = oustanding(test_15, exchange, 'active')
+                exchange = statistics(test_15,exchange,loss,'short')
+                test_15_deal['is_test'].iloc[-2]='yes'
+                test_15_deal['long_or_sell'].iloc[-2]='yes'
 
 
 
@@ -391,11 +424,49 @@ def test(type,api):
         #     elif exchange['direction'].iloc[-1]=='short' and exchange['loss'].iloc[-1]>test_15['high'].iloc[-1]:
         #         exchange = oustanding(test_15, exchange, 'passive')
 
-        # long_to_grid_test(test_15_simple[-1500:].reset_index(drop=True),test_15[-1500:].reset_index(drop=True),test_15_deal,test_15_line,test_1h_line,record_first)
-        # # if record_first['flag'].iloc[-1] == 'yes' and test_15['close'].iloc[-1] < test_15['close'].iloc[-19] :
-        # #     print('准备网格 '+str(test_15.iat[-1, 0]) )
-        #
-        #
+        if True not in (test_15_deal['long_or_sell'].iloc[-4:-1 ]=='yes').tolist():
+            if long_to_grid_test(test_15_simple[-1500:].reset_index(drop=True),date,test_15_deal,test_15_line,test_1h_line,record_first):
+                sl, grid = start_grid(test_15_deal, 'rise')
+                if sl / now_close > 0.005 and record_first['grid'].iloc[-1] != grid:
+                    record_first.loc[len(record_first)] = [date, 0, "", "", "", "", "yes", "10000", record_first['point'].iloc[-1], "yes", grid, sl, ""]
+                    print('网格: ' + str(test_15.iat[-1, 0]) + ' 点位:' + str(grid) + ' 密度:' + str(sl) + ' ' + str(
+                        grid + sl) + ' ' + str(grid + 2 * sl) + ' ' + str(grid - sl) + ' ' + str(grid - 2 * sl))
+
+                    gear = record_first['gear'].iloc[-1]
+                    base_price = grid + sl * gear
+                    new_gear = exchange_grid(gear, grid, sl, now_close)
+                    balance = float(exchange['balance'].iloc[-1])
+                    num = float(exchange['num'].iloc[-1])
+                    assets = balance + num * close_price
+
+                    if new_gear == -2:
+                        num = assets/now_close
+                        balance = 0
+                    elif new_gear == -1:
+                        balance = assets *0.5
+                        num = assets/now_close*0.5
+                    elif new_gear == 0:
+                        num = 0
+                        balance = assets
+                    elif new_gear == 1:
+                        num = -0.5*assets/now_close
+                        balance = balance * 1.5
+
+                    elif new_gear ==2:
+                        num = -assets/now_close
+                        balance = 2*assets
+                    new = pd.DataFrame(
+                            {"date": test_15["date"].iloc[-1], "direction": new_gear, "price": test_15['close'].iloc[-1],
+                             "loss": "",
+                             "outstanding": 'no', "balance": balance, "num": num, "situation": "active",
+                             "close_price": close_price, "assets": assets}, index=[1])
+                    exchange = exchange.append(new, ignore_index=True)
+                    record_first['gear'].iloc[-1] = new_gear
+
+        # if record_first['flag'].iloc[-1] == 'yes' and test_15['close'].iloc[-1] < test_15['close'].iloc[-19] :
+        #     print('准备网格 '+str(test_15.iat[-1, 0]) )
+
+
         # if len(test_15_line) > 3 and len(record_first) > 1 and record_first['flag'].iloc[-1] != 'yes' and\
         #          chaos(test_15_deal,'rise') == True and record_first['flag'].iloc[-1] != 'no' and test_15_deal["flag"].iloc[-1] =='max':
         #         sl, grid = grid(test_15_deal, 'rise')

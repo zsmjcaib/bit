@@ -3,9 +3,29 @@ import os
 
 
 def find_point(df, df_point):
-
+    date = ''
+    long_or_sell_date=''
+    try:
+        if df_point["is_test"].iloc[-2] == 'yes' :
+            is_test ='yes'
+            date = df_point["date"].iloc[-2]
+        else:
+            is_test=''
+    except:
+        is_test=''
+    try:
+        if df_point["long_or_sell"].iloc[-2] == 'yes' :
+            long_or_sell ='yes'
+            long_or_sell_date = df_point["date"].iloc[-2]
+        else:
+            long_or_sell=''
+    except:
+        long_or_sell=''
     df_point = find(df,df_point)
-
+    if df_point["date"].iloc[-2]==date:
+        df_point["is_test"].iloc[-2] = 'yes'
+    if df_point["date"].iloc[-2]==long_or_sell_date:
+        df_point["long_or_sell"].iloc[-2] = long_or_sell
     return df_point
 
 
@@ -19,7 +39,7 @@ def  find(df, df_point):
             flag,mark,key =__deal(index, df, df_point)
             if(flag != "no"):
                 # print(index)
-                new = pd.DataFrame({"date":df.iat[index-1,0],"key":key,"flag":flag,"temp":"yes"},index=[1])
+                new = pd.DataFrame({"date":df.iat[index-1,0],"key":key,"flag":flag,"temp":"yes","is_test":"","long_or_sell":""},index=[1])
                 df_point = df_point.append(new, ignore_index=True)
     #一般情况
     else:
@@ -32,7 +52,7 @@ def  find(df, df_point):
 
             flag, mark, key = __deal(index, df, df_point)
             if (flag != "no"):
-                new = pd.DataFrame({"date": df.iat[index-1, 0], "key": key, "flag": flag, "temp": "yes"},index=[1])
+                new = pd.DataFrame({"date": df.iat[index-1, 0], "key": key, "flag": flag, "temp": "yes","is_test":"","long_or_sell":""},index=[1])
                 df_point = df_point.append(new, ignore_index=True)
     #结束添加临时顶底
     return __deal_temp(df, df_point)
@@ -98,24 +118,24 @@ def __deal_temp(df, df_point):
             if df['low'].iloc[-1]<df_point['key'].iloc[-1]:
 
                 df_point.drop(df_point.tail(1).index, inplace=True)
-                new = pd.DataFrame({"date": df["date"].iloc[-1], "key":df['low'].iloc[-1], "flag": "min", "temp": "yes"},index=[1])
+                new = pd.DataFrame({"date": df["date"].iloc[-1], "key":df['low'].iloc[-1], "flag": "min", "temp": "yes","is_test":"","long_or_sell":""},index=[1])
                 df_point = df_point.append(new, ignore_index=True)
             #找最后一点
             elif index+1<len(df):
                 i = df['high'][index+1:].idxmax()
                 if df['high'].iloc[i]>df_point['key'].iloc[-2] or i>index+2:
-                    new = pd.DataFrame({"date": df["date"].iloc[i], "key":df['high'].iloc[i], "flag": "max", "temp": "yes"},index=[1])
+                    new = pd.DataFrame({"date": df["date"].iloc[i], "key":df['high'].iloc[i], "flag": "max", "temp": "yes","is_test":"","long_or_sell":""},index=[1])
                     df_point = df_point.append(new, ignore_index=True)
         else:
             if df['high'].iloc[-1]>df_point['key'].iloc[-1]:
                 df_point.drop(df_point.tail(1).index, inplace=True)
-                new = pd.DataFrame({"date": df["date"].iloc[-1], "key":df['high'].iloc[-1], "flag": "max", "temp": "yes"},index=[1])
+                new = pd.DataFrame({"date": df["date"].iloc[-1], "key":df['high'].iloc[-1], "flag": "max", "temp": "yes","is_test":"","long_or_sell":""},index=[1])
                 df_point = df_point.append(new, ignore_index=True)
             #找最后一点
             elif index+1<len(df):
                 i = df['low'][index+1:].idxmin()
                 if df['low'].iloc[i]<df_point['key'].iloc[-2] or i>index+2:
-                    new = pd.DataFrame({"date": df["date"].iloc[i], "key":df['low'].iloc[i], "flag": "min", "temp": "yes"},index=[1])
+                    new = pd.DataFrame({"date": df["date"].iloc[i], "key":df['low'].iloc[i], "flag": "min", "temp": "yes","is_test":"","long_or_sell":""},index=[1])
                     df_point = df_point.append(new, ignore_index=True)
         return df_point
     except:
