@@ -203,18 +203,21 @@ def test(type,api):
         close_price = test_15['close'].iloc[-1]
         high = test_15['high'].iloc[-1]
         low = test_15['low'].iloc[-1]
-        if date == '2021-06-09 03:00:00':#震荡未识别 2021-12-18 21:30:00#为何买入 2022-04-25 11:45:00止损价 2022-04-30 00:00:00
+        if date == '2021-06-08 23:15:00':#震荡未识别 2021-12-18 21:30:00#为何买入 2022-04-25 11:45:00止损价 2022-04-30 00:00:00
             print(1)
-        if date == '2021-06-10 04:45:00':#震荡未识别
+        if date == '2021-06-10 05:00:00':
             print(1)
-        if date == '2021-06-10 05:00:00':#震荡未识别
+        if date == '2021-06-11 03:15:00':#震荡未识别
             print(1)
 
         #成交挂单
         if record_first['is_grid'].iloc[-1] =='yes':
             balance = exchange['balance'].iloc[-1]
             l = deepcopy(exchange.iloc[-1])
-            l['date'].iloc[-1] = date
+            l['date'] = date
+            l['close_price'] = close_price
+            l['num'] = exchange['num'].iloc[-1]
+
             flag = 0
             for i in range(1,6):
                 num = exchange['order_'+str(i)+'_num'].iloc[-1]
@@ -222,10 +225,12 @@ def test(type,api):
                 if num<0:
                     if close_price>=exchange['order_'+str(i)].iloc[-1]:
                         balance=balance - num*exchange['order_'+str(i)].iloc[-1]*0.998
-                        l['order_' + str(i-1) + '_num'].iloc[-1] = abs(num)
-                        l['order_' + str(i) + '_num'].iloc[-1]=0
-                        exchange = exchange.append(l, ignore_index=True)
-                        flag =1
+                        l['order_' + str(i-1) + '_num'] = abs(num)
+                        l['order_' + str(i) + '_num']=0
+                        l['assets'] = round(balance + num * close_price, 2)
+                        l['num'] +=num
+                        flag = 1
+
             if flag == 0:
                 for i in range(5,0,-1):
                     num = exchange['order_'+str(i)+'_num'].iloc[-1]
@@ -233,9 +238,12 @@ def test(type,api):
                     if num>0:
                         if close_price<=exchange['order_'+str(i)].iloc[-1]:
                             balance=balance - num*exchange['order_'+str(i)].iloc[-1]*1.002
-                            l['order_' + str(i+1) + '_num'].iloc[-1] = -num
-                            l['order_' + str(i) + '_num'].iloc[-1]=0
-                            exchange = exchange.append(l, ignore_index=True)
+                            l['order_' + str(i+1) + '_num'] = -num
+                            l['order_' + str(i) + '_num']=0
+                            l['assets'] = round(balance + num * close_price, 2)
+                            l['num'] += num
+
+            exchange = exchange.append(l, ignore_index=True)
 
         if test_15_line['is_test'].iloc[-1] != 'yes':
             if test_15_line['flag'].iloc[-1] =='down':
@@ -293,10 +301,19 @@ def test(type,api):
                     record_first.loc[len(record_first)] = [date,0, "","", "","","yes",loss,record_first['point'].iloc[rise_index],"yes",grid,sl,""]
                     print('网格: ' + str(test_15.iat[-1, 0]) + ' 点位:' + str(grid) + ' 密度:' + str(sl) + ' ' + str(
                         grid + sl) + ' ' + str(grid + 2 * sl) + ' ' + str(grid - sl) + ' ' + str(grid - 2 * sl))
-
+                    new = pd.DataFrame(
+                        {"date": test_15["date"].iloc[-1], "direction": '', "price": test_15['close'].iloc[-1],
+                         "loss": "",
+                         "outstanding": 'no', "balance": '', "num": '', "situation": "active",
+                         "close_price": close_price, "assets": ''
+                            , 'order_1': '', 'order_1_num': '', 'order_2': '', 'order_2_num': '', 'order_3': '',
+                         'order_3_num': ''
+                            , 'order_4': '', 'order_4_num': '', 'order_5': '', 'order_5_num': ''}, index=[1])
+                    exchange = init_grid(grid, sl, new, exchange)
                 else:
                     exchange = statistics(test_15,exchange,loss,'long')
                     record_first['flag'].iloc[rise_index] = 'yes'
+                    #要新增一条数据
 
         if down_index != 'wrong' and record_first['flag'].iloc[down_index] == 'prepare':
             result,new_loss = care(test_15_deal,test_15_line)
@@ -318,36 +335,36 @@ def test(type,api):
                                  "outstanding": 'no', "balance": '', "num": '', "situation": "active", "close_price": close_price,"assets":''
                                     , 'order_1': '', 'order_1_num': '', 'order_2': '', 'order_2_num': '', 'order_3': '','order_3_num': ''
                                     , 'order_4': '', 'order_4_num': '', 'order_5': '', 'order_5_num': ''}, index=[1])
-                    init_grid(grid,sl,new,exchange)
+                    exchange = init_grid(grid,sl,new,exchange)
                 else:
                     exchange = statistics(test_15,exchange,loss,'short')
                     record_first['flag'].iloc[down_index] = 'yes'
 
-        # if rise_index != 'wrong' and record_first['flag'].iloc[rise_index] == '':
-        #     result,loss = judge_buy(test_15_line,record_first,test_15,test_15_deal,rise_index)
-        #     if result == 'special' or (type_V(test_15,test_15_deal,test_15_line) == True and result == 'normal'):
-        #         if len(exchange)>1 and exchange['outstanding'].iloc[-1]=='no':
-        #             exchange = oustanding(test_15,exchange,'active')
-        #         exchange = statistics(test_15,exchange,loss,'long')
-        #         record_first['flag'].iloc[rise_index] = 'yes'
-        #         record_first['loss'].iloc[rise_index] = loss
-        #     elif result == 'normal':
-        #         record_first['flag'].iloc[rise_index] = 'prepare'
-        #         record_first['loss'].iloc[rise_index] = loss
-        #
-        # if down_index != 'wrong' and record_first['flag'].iloc[down_index] == '' :
-        #     result,loss = judge_sell(test_15_line,record_first,test_15,test_15_deal,down_index)
-        #     if result == 'special' or (type_V(test_15,test_15_deal,test_15_line) == True and result == 'normal')  :
-        #         if len(exchange)>1 and exchange['outstanding'].iloc[-1]=='no':
-        #             exchange = oustanding(test_15,exchange,'active')
-        #         exchange = statistics(test_15,exchange,loss,'short')
-        #         record_first['flag'].iloc[down_index] = 'yes'
-        #         record_first['loss'].iloc[down_index] = loss
-        #
-        #     elif result == 'normal':
-        #         record_first['flag'].iloc[down_index] = 'prepare'
-        #         record_first['loss'].iloc[down_index] = loss
-        #
+        if rise_index != 'wrong' and record_first['flag'].iloc[rise_index] == '':
+            result,loss = judge_buy(test_15_line,record_first,test_15,test_15_deal,rise_index)
+            if result == 'special' or (type_V(test_15,test_15_deal,test_15_line) == True and result == 'normal'):
+                if len(exchange)>1 and exchange['outstanding'].iloc[-1]=='no':
+                    exchange = oustanding(test_15,exchange,'active')
+                exchange = statistics(test_15,exchange,loss,'long')
+                record_first['flag'].iloc[rise_index] = 'yes'
+                record_first['loss'].iloc[rise_index] = loss
+            elif result == 'normal':
+                record_first['flag'].iloc[rise_index] = 'prepare'
+                record_first['loss'].iloc[rise_index] = loss
+
+        if down_index != 'wrong' and record_first['flag'].iloc[down_index] == '' :
+            result,loss = judge_sell(test_15_line,record_first,test_15,test_15_deal,down_index)
+            if result == 'special' or (type_V(test_15,test_15_deal,test_15_line) == True and result == 'normal')  :
+                if len(exchange)>1 and exchange['outstanding'].iloc[-1]=='no':
+                    exchange = oustanding(test_15,exchange,'active')
+                exchange = statistics(test_15,exchange,loss,'short')
+                record_first['flag'].iloc[down_index] = 'yes'
+                record_first['loss'].iloc[down_index] = loss
+
+            elif result == 'normal':
+                record_first['flag'].iloc[down_index] = 'prepare'
+                record_first['loss'].iloc[down_index] = loss
+
         # if record_first['is_grid'].iloc[-1] =='yes':
         #
         #     balance = exchange['balance'].iloc[-1]
@@ -486,8 +503,8 @@ def test(type,api):
                     print('网格: ' + str(test_15.iat[-1, 0]) + ' 点位:' + str(grid) + ' 密度:' + str(sl) + ' ' + str(
                         grid + sl) + ' ' + str(grid + 2 * sl) + ' ' + str(grid - sl) + ' ' + str(grid - 2 * sl))
 
-                    gear = record_first['gear'].iloc[-1]
-                    base_price = grid + sl * gear
+                    # gear = record_first['gear'].iloc[-1]
+                    # base_price = grid + sl * gear
                     # new_gear = exchange_grid(gear, grid, sl, now_close)
                     balance = float(exchange['balance'].iloc[-1])
                     num = float(exchange['num'].iloc[-1])
@@ -499,7 +516,9 @@ def test(type,api):
                              "loss": "","outstanding": 'no', "balance": balance, "num": num, "situation": "active",
                              "close_price": close_price, "assets": assets, 'order_1': '', 'order_1_num': '', 'order_2': '',
                              'order_2_num': '', 'order_3': '','order_3_num': '', 'order_4': '', 'order_4_num': '', 'order_5': '', 'order_5_num': ''}, index=[1])
-                    exchange = exchange.append(new, ignore_index=True)
+                    exchange = init_grid(grid,sl,new,exchange)
+
+                    # exchange = exchange.append(new, ignore_index=True)
                     record_first['gear'].iloc[-1] = 'new_gear'
 
         # if record_first['flag'].iloc[-1] == 'yes' and test_15['close'].iloc[-1] < test_15['close'].iloc[-19] :

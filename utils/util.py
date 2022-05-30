@@ -44,11 +44,11 @@ def exchange_record(path):
     if not os.path.exists(path):
         demo = pd.DataFrame(columns=['date', 'direction', 'price', 'loss', 'outstanding', 'balance','num','situation','close_price','assets'
                                      ,'order_1','order_1_num','order_2','order_2_num','order_3','order_3_num','order_4','order_4_num','order_5','order_5_num'])
-        demo.loc[len(demo)] = ["", "", "", "", "yes",  100000,0,"","","","","","","","","","","","",""]
+        demo.loc[len(demo)] = ["", "", "", "", "yes",  100000,0,"","","","",0,"",0,"",0,"",0,"",0]
     else:
         demo = pd.DataFrame(columns=['date', 'direction', 'price', 'loss', 'outstanding', 'balance','num','situation','close_price','assets'
                                      ,'order_1','order_1_num','order_2','order_2_num','order_3','order_3_num','order_4','order_4_num','order_5','order_5_num'])
-        demo.loc[len(demo)] = ["", "", "", "", "yes",  100000,0,"","","","","","","","","","","","",""]
+        demo.loc[len(demo)] = ["", "", "", "", "yes",  100000,0,"","","","",0,"",0,"",0,"",0,"",0]
     return demo
 def comp_loss(normal,date,flag):
     index = normal[normal['date'] == date].index.tolist()[-1]
@@ -234,11 +234,11 @@ def statistics(test_15,exchange,loss,flag):
     balance = float(exchange['balance'].iloc[-1])
     num = float(exchange['num'].iloc[-1])
     if flag =='long':
-        num = num + balance/price*0.995
+        num = round(num + balance/price*0.995,2)
         balance = 0
     else:
-        assets = balance + num * price
-        num = -1*(2*assets - balance)/price*1.005
+        assets = round(balance + num * price,2)
+        num = round(-1*(2*assets - balance)/price*1.005,2)
         balance = 2*assets
 
     assets = balance+num*price
@@ -264,7 +264,7 @@ def oustanding(test_15,exchange,situation):
         balance = balance+num*close_price-abs(num)*close_price*0.005
 
     new = pd.DataFrame({"date": test_15["date"].iloc[-1], "direction": flag, "price": test_15['close'].iloc[-1], "loss":loss,
-                        "outstanding":'yes',"balance":balance,"num":"0","situation":situation,"close_price":close_price,"assets":balance
+                        "outstanding":'yes',"balance":balance,"num":0.0,"situation":situation,"close_price":close_price,"assets":balance
                            , 'order_1': '', 'order_1_num': '', 'order_2': '', 'order_2_num': '', 'order_3': '','order_3_num': ''
                            , 'order_4': '', 'order_4_num': '', 'order_5': '', 'order_5_num': ''},index=[1])
     exchange = exchange.append(new, ignore_index=True)
@@ -298,36 +298,42 @@ def init_grid(grid,sl,l,exchange):
     close_price = l['close_price'].iloc[-1]
     balance = exchange['balance'].iloc[-1]
     num = exchange['num'].iloc[-1]
+    l['num'].iloc[-1] = num
     assets = balance + num*close_price
-    each = assets/close_price/2
+    each = round(assets/close_price/2,2)
     for i in range(1, 3):
-        l['order_' + str(i) + '_num'].iloc[-1]=each
+        l['order_' + str(i) + '_num']=each
     for i in range(4, 6):
-        l['order_' + str(i) + '_num'].iloc[-1]=-each
+        l['order_' + str(i) + '_num']=-each
     for i in range(1, 6):
-        l['order_' + str(i)].iloc[-1]=grid+sl*(i-3)
+        l['order_' + str(i)]=round(grid+sl*(i-3),2)
+    l['order_3_num' ]=0.0
+
     flag = 0
     for i in range(1, 6):
         num = l['order_' + str(i) + '_num'].iloc[-1]
         # put
         if num < 0:
-            if close_price >= exchange['order_' + str(i)].iloc[-1]:
-                balance = balance - num * close_price.iloc[-1] * 0.998
+            if close_price >= l['order_' + str(i)].iloc[-1]:
+                balance = balance - num * close_price * 0.998
                 l['order_' + str(i - 1) + '_num'].iloc[-1] = abs(num)
                 l['order_' + str(i) + '_num'].iloc[-1] = 0
-                exchange = exchange.append(l, ignore_index=True)
+                l['num'].iloc[-1] +=num
                 flag = 1
-    if flag == 0:
+    if flag==0:
         for i in range(5, 0, -1):
             num = l['order_' + str(i) + '_num'].iloc[-1]
             # long
             if num > 0:
-                if close_price <= exchange['order_' + str(i)].iloc[-1]:
+                if close_price <= l['order_' + str(i)].iloc[-1]:
                     balance = balance - num * close_price * 1.002
                     l['order_' + str(i + 1) + '_num'].iloc[-1] = -num
                     l['order_' + str(i) + '_num'].iloc[-1] = 0
-                    exchange = exchange.append(l, ignore_index=True)
-
+                    l['num'].iloc[-1] += num
+    l['balance'].iloc[-1] = round(balance,2)
+    l['num'].iloc[-1] = round(num,2)
+    exchange = exchange.append(l, ignore_index=True)
+    return exchange
 
 
 #准备删
