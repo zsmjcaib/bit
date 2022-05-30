@@ -42,11 +42,13 @@ def read_first_record(path):
 
 def exchange_record(path):
     if not os.path.exists(path):
-        demo = pd.DataFrame(columns=['date', 'direction', 'price', 'loss', 'outstanding', 'balance','num','situation','close_price','assets'])
-        demo.loc[len(demo)] = ["", "", "", "", "",  100000,0,"","",""]
+        demo = pd.DataFrame(columns=['date', 'direction', 'price', 'loss', 'outstanding', 'balance','num','situation','close_price','assets'
+                                     ,'order_1','order_1_num','order_2','order_2_num','order_3','order_3_num','order_4','order_4_num','order_5','order_5_num'])
+        demo.loc[len(demo)] = ["", "", "", "", "yes",  100000,0,"","","","","","","","","","","","",""]
     else:
-        demo = pd.DataFrame(columns=['date', 'direction', 'price', 'loss', 'outstanding', 'balance','num','situation','close_price','assets'])
-        demo.loc[len(demo)] = ["", "", "", "", "",  100000,0,"","",""]
+        demo = pd.DataFrame(columns=['date', 'direction', 'price', 'loss', 'outstanding', 'balance','num','situation','close_price','assets'
+                                     ,'order_1','order_1_num','order_2','order_2_num','order_3','order_3_num','order_4','order_4_num','order_5','order_5_num'])
+        demo.loc[len(demo)] = ["", "", "", "", "yes",  100000,0,"","","","","","","","","","","","",""]
     return demo
 def comp_loss(normal,date,flag):
     index = normal[normal['date'] == date].index.tolist()[-1]
@@ -240,7 +242,10 @@ def statistics(test_15,exchange,loss,flag):
         balance = 2*assets
 
     assets = balance+num*price
-    new = pd.DataFrame({"date": test_15["date"].iloc[-1], "direction": flag, "price": test_15['close'].iloc[-1], "loss":loss,"outstanding":'no',"balance":balance,"num":num,"situation":"","close_price":"","assets":assets},index=[1])
+    new = pd.DataFrame({"date": test_15["date"].iloc[-1], "direction": flag, "price": test_15['close'].iloc[-1], "loss":loss,
+                        "outstanding":'no',"balance":balance,"num":num,"situation":"","close_price":"","assets":assets
+                        ,'order_1':'','order_1_num':'','order_2':'','order_2_num':'','order_3':'','order_3_num':''
+                           ,'order_4':'','order_4_num':'','order_5':'','order_5_num':''},index=[1])
     exchange = exchange.append(new, ignore_index=True)
     return exchange
 
@@ -258,7 +263,10 @@ def oustanding(test_15,exchange,situation):
         close_price = loss
         balance = balance+num*close_price-abs(num)*close_price*0.005
 
-    new = pd.DataFrame({"date": test_15["date"].iloc[-1], "direction": flag, "price": test_15['close'].iloc[-1], "loss":loss,"outstanding":'yes',"balance":balance,"num":"0","situation":situation,"close_price":close_price,"assets":balance},index=[1])
+    new = pd.DataFrame({"date": test_15["date"].iloc[-1], "direction": flag, "price": test_15['close'].iloc[-1], "loss":loss,
+                        "outstanding":'yes',"balance":balance,"num":"0","situation":situation,"close_price":close_price,"assets":balance
+                           , 'order_1': '', 'order_1_num': '', 'order_2': '', 'order_2_num': '', 'order_3': '','order_3_num': ''
+                           , 'order_4': '', 'order_4_num': '', 'order_5': '', 'order_5_num': ''},index=[1])
     exchange = exchange.append(new, ignore_index=True)
     return exchange
 
@@ -285,23 +293,61 @@ def care(deal,line):
         return True,deal_copy['key'].iloc[-2]
     return False,0
 
-def exchange_grid(gear,grid,sl,now_close):
-    # if now_close < grid - sl * 2:
-    #     gear=-2
-    #     return gear
-    # if now_close > grid + sl * 2:
-    #     gear=2
-    #     return gear
-    #低于原值
-    if (grid +sl *gear)>=now_close:
-        for i in range(-2, gear):
-            if (grid +sl *i)>=now_close:
-                return i
-    else:
-        for i in range(2,gear,-1):
-            if (grid +sl *i)<=now_close:
-                return i
-    return gear
+
+def init_grid(grid,sl,l,exchange):
+    close_price = l['close_price'].iloc[-1]
+    balance = exchange['balance'].iloc[-1]
+    num = exchange['num'].iloc[-1]
+    assets = balance + num*close_price
+    each = assets/close_price/2
+    for i in range(1, 3):
+        l['order_' + str(i) + '_num'].iloc[-1]=each
+    for i in range(4, 6):
+        l['order_' + str(i) + '_num'].iloc[-1]=-each
+    for i in range(1, 6):
+        l['order_' + str(i)].iloc[-1]=grid+sl*(i-3)
+    flag = 0
+    for i in range(1, 6):
+        num = l['order_' + str(i) + '_num'].iloc[-1]
+        # put
+        if num < 0:
+            if close_price >= exchange['order_' + str(i)].iloc[-1]:
+                balance = balance - num * close_price.iloc[-1] * 0.998
+                l['order_' + str(i - 1) + '_num'].iloc[-1] = abs(num)
+                l['order_' + str(i) + '_num'].iloc[-1] = 0
+                exchange = exchange.append(l, ignore_index=True)
+                flag = 1
+    if flag == 0:
+        for i in range(5, 0, -1):
+            num = l['order_' + str(i) + '_num'].iloc[-1]
+            # long
+            if num > 0:
+                if close_price <= exchange['order_' + str(i)].iloc[-1]:
+                    balance = balance - num * close_price * 1.002
+                    l['order_' + str(i + 1) + '_num'].iloc[-1] = -num
+                    l['order_' + str(i) + '_num'].iloc[-1] = 0
+                    exchange = exchange.append(l, ignore_index=True)
+
+
+
+#准备删
+# def exchange_grid(gear,grid,sl,now_close):
+#     # if now_close < grid - sl * 2:
+#     #     gear=-2
+#     #     return gear
+#     # if now_close > grid + sl * 2:
+#     #     gear=2
+#     #     return gear
+#     #低于原值
+#     if (grid +sl *gear)>=now_close:
+#         for i in range(-2, gear):
+#             if (grid +sl *i)>=now_close:
+#                 return i
+#     else:
+#         for i in range(2,gear,-1):
+#             if (grid +sl *i)<=now_close:
+#                 return i
+#     return gear
 
 def grid_to_long(normal):
     if normal['close'].iloc[-1] > normal['close'].iloc[-20]  and normal['close'].iloc[-1] > normal['close'].iloc[-19]:
