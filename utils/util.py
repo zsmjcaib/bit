@@ -32,10 +32,10 @@ def stock_macd(df):
 
 def read_first_record(path):
     if not os.path.exists(path ):
-        demo = pd.DataFrame(columns=['date','gear','15m','1h','15m小转大','1h小转大','flag','loss','point','is_grid','grid','sl','direction'])
+        demo = pd.DataFrame(columns=['date','first','15m','1h','15m小转大','1h小转大','flag','loss','point','is_grid','grid','sl','direction'])
         demo.loc[len(demo)] = [ "1997","", "","", "","","","","","","","",""]
     else:
-        demo = pd.DataFrame(columns=['date', 'gear', '15m', '1h', '15m小转大', '1h小转大', 'flag','loss','point','is_grid','grid','sl','direction'])
+        demo = pd.DataFrame(columns=['date', 'first', '15m', '1h', '15m小转大', '1h小转大', 'flag','loss','point','is_grid','grid','sl','direction'])
         demo.loc[len(demo)] = [ "1997","", "","", "","","","","","","","",""]
         # demo = pd.read_csv(path )
     return demo
@@ -143,7 +143,7 @@ def find_grid(max4, min4, max3, min3, max2, min2, max1, min1):
     l = [abs1,abs2,abs3,abs4]
     l.sort(reverse = True)
     sl =round((l[1]+l[2])/6,2)
-    grid = round((max1 + min1)/4+(max2+min2)/6+(max3+min3)/12,2)
+    grid = round((max1 + min1)/3+(max2+min2)/6,2)
     return sl,grid
 
 def judge_buy(test_15_line,record_first,test_15,test_15_deal,rise_index):
@@ -238,7 +238,7 @@ def statistics(test_15,exchange,loss,flag):
         balance = 0
     else:
         assets = round(balance + num * price,2)
-        num = round(-1*(2*assets - balance)/price*1.005,2)
+        num = round(-assets/price*1.005,2)
         balance = 2*assets
 
     assets = balance+num*price
@@ -295,10 +295,11 @@ def care(deal,line):
 
 
 def init_grid(grid,sl,l,exchange):
+    l =l.copy()
     close_price = l['close_price'].iloc[-1]
     balance = exchange['balance'].iloc[-1]
     num = exchange['num'].iloc[-1]
-    l['num'].iloc[-1] = num
+    l['num'] = num
     assets = balance + num*close_price
     each = round(assets/close_price/2,2)
     for i in range(1, 3):
@@ -316,9 +317,9 @@ def init_grid(grid,sl,l,exchange):
         if num < 0:
             if close_price >= l['order_' + str(i)].iloc[-1]:
                 balance = balance - num * close_price * 0.998
-                l['order_' + str(i - 1) + '_num'].iloc[-1] = abs(num)
-                l['order_' + str(i) + '_num'].iloc[-1] = 0
-                l['num'].iloc[-1] +=num
+                l['order_' + str(i - 1) + '_num'] = abs(num)
+                l['order_' + str(i) + '_num'] = 0
+                l['num'] +=num
                 flag = 1
     if flag==0:
         for i in range(5, 0, -1):
@@ -327,11 +328,12 @@ def init_grid(grid,sl,l,exchange):
             if num > 0:
                 if close_price <= l['order_' + str(i)].iloc[-1]:
                     balance = balance - num * close_price * 1.002
-                    l['order_' + str(i + 1) + '_num'].iloc[-1] = -num
-                    l['order_' + str(i) + '_num'].iloc[-1] = 0
-                    l['num'].iloc[-1] += num
-    l['balance'].iloc[-1] = round(balance,2)
-    l['num'].iloc[-1] = round(num,2)
+                    l['order_' + str(i + 1) + '_num'] = -num
+                    l['order_' + str(i) + '_num'] = 0
+                    l['num'] += num
+    l['balance'] = round(balance,2)
+    l['num'] = round(l['num'],2)
+    l['assets'] = round(assets,2)
     exchange = exchange.append(l, ignore_index=True)
     return exchange
 
@@ -381,3 +383,60 @@ def grid_to_sell(normal):
                 if launch(normal, 'down') and vol_confirm(normal) and normal['short'].iloc[-1] > 0.1:
                     return True
     return False
+
+def update_grid(grid,sl,new,exchange):
+
+
+
+
+    l = new.copy()
+    close_price = l['close_price'].iloc[-1]
+    balance = exchange['balance'].iloc[-1]
+    num = exchange['num'].iloc[-1]
+    l['num'] = num
+    assets = balance + num * close_price
+    each = round(assets / close_price / 2, 2)
+    for i in range(1, 3):
+        l['order_' + str(i) + '_num'] = each
+    for i in range(4, 6):
+        l['order_' + str(i) + '_num'] = -each
+    for i in range(1, 6):
+        l['order_' + str(i)] = round(grid + sl * (i - 3), 2)
+    l['order_3_num'] = 0.0
+
+    flag = 0
+    for i in range(1, 6):
+        num = l['order_' + str(i) + '_num'].iloc[-1]
+        # put
+        if num < 0:
+            if close_price >= l['order_' + str(i)].iloc[-1]:
+                balance = balance - num * close_price * 0.998
+                l['order_' + str(i - 1) + '_num'] = abs(num)
+                l['order_' + str(i) + '_num'] = 0
+                l['num'] += num
+                flag = 1
+    if flag == 0:
+        for i in range(5, 0, -1):
+            num = l['order_' + str(i) + '_num'].iloc[-1]
+            # long
+            if num > 0:
+                if close_price <= l['order_' + str(i)].iloc[-1]:
+                    balance = balance - num * close_price * 1.002
+                    l['order_' + str(i + 1) + '_num'] = -num
+                    l['order_' + str(i) + '_num'] = 0
+                    l['num'] += num
+    l['balance'] = round(balance, 2)
+    l['num'] = round(num, 2)
+    l['assets'] = round(assets, 2)
+    exchange = exchange.append(l, ignore_index=True)
+    return exchange
+
+
+
+
+
+
+
+
+
+

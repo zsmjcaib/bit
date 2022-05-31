@@ -23,9 +23,9 @@ def find_point(df, df_point):
         long_or_sell=''
     df_point = find(df,df_point)
     if df_point["date"].iloc[-2]==date:
-        df_point["is_test"].iloc[-2] = 'yes'
+        df_point.iat[-2,4] = is_test
     if df_point["date"].iloc[-2]==long_or_sell_date:
-        df_point["long_or_sell"].iloc[-2] = long_or_sell
+        df_point.iat[-2,5] = long_or_sell
     return df_point
 
 
