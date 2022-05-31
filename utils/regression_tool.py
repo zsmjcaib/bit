@@ -130,7 +130,7 @@ def test(type,api):
 
 
 
-    test_15 = real_data[:4000]
+    test_15 = real_data[:3000]
     test_15 = test_15.reset_index(drop=True)
     test_1h = import_csv(test_15, '1H','','init')
     test_4h = import_csv(test_15, '4H','','init')
@@ -166,7 +166,7 @@ def test(type,api):
     b =time.time()
 
 
-    for i, row in real_data[4000:10000].iterrows():
+    for i, row in real_data[3000:10000].iterrows():
         if i%500 ==0:
             print(test_15.iat[-1,0])
             grid_15_chart = chart_test(test_15_simple, test_15_deal, test_15_line)
@@ -218,6 +218,7 @@ def test(type,api):
             l['close_price'] = close_price
             l['num'] = exchange['num'].iloc[-1]
             l['direction'] = ''
+            base_num = l['base_num']
             flag = 0
             for i in range(1,6):
                 num = exchange['order_'+str(i)+'_num'].iloc[-1]
@@ -225,7 +226,7 @@ def test(type,api):
                 if num<0:
                     if close_price>=exchange['order_'+str(i)].iloc[-1]:
                         balance=balance - num*exchange['order_'+str(i)].iloc[-1]*0.998
-                        l['order_' + str(i-1) + '_num'] = abs(num)
+                        l['order_' + str(i-1) + '_num'] = abs(base_num)
                         l['order_' + str(i) + '_num']=0
                         l['num'] +=num
                         l['assets'] = round(balance + l['num'] * close_price, 2)
@@ -240,7 +241,7 @@ def test(type,api):
                     if num>0:
                         if close_price<=exchange['order_'+str(i)].iloc[-1]:
                             balance=balance - num*exchange['order_'+str(i)].iloc[-1]*1.002
-                            l['order_' + str(i+1) + '_num'] = -num
+                            l['order_' + str(i+1) + '_num'] = -base_num
                             l['order_' + str(i) + '_num']=0
                             l['num'] += num
                             l['assets'] = round(balance + l['num'] * close_price, 2)
@@ -521,7 +522,7 @@ def test(type,api):
                     # gear = record_first['gear'].iloc[-1]
                     # base_price = grid + sl * gear
                     # new_gear = exchange_grid(gear, grid, sl, now_close)
-                    exchange = oustanding(test_15,exchange,'active')
+                    # exchange = oustanding(test_15,exchange,'active')
                     balance = float(exchange['balance'].iloc[-1])
                     num = float(exchange['num'].iloc[-1])
                     assets = balance + num * close_price
@@ -533,7 +534,7 @@ def test(type,api):
                              "close_price": close_price, "assets": assets, 'order_1': '', 'order_1_num': '', 'order_2': '',
                              'order_2_num': '', 'order_3': '','order_3_num': '', 'order_4': '', 'order_4_num': '', 'order_5': '', 'order_5_num': ''}, index=[1])
 
-                    exchange = init_grid(grid,sl,new,exchange)
+                    exchange = update_grid(grid,sl,new,exchange)
 
                     # exchange = exchange.append(new, ignore_index=True)
                     record_first['first'].iloc[-1] = 'new_gear'

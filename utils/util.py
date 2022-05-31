@@ -3,6 +3,8 @@ import os
 import pandas as pd
 import copy
 import datetime
+from copy import deepcopy
+
 def stock_macd(df):
 
     diff, dea, macd = talib.MACD(df["close"],
@@ -42,11 +44,11 @@ def read_first_record(path):
 
 def exchange_record(path):
     if not os.path.exists(path):
-        demo = pd.DataFrame(columns=['date', 'direction', 'price', 'loss', 'outstanding', 'balance','num','situation','close_price','assets'
+        demo = pd.DataFrame(columns=['date', 'direction', 'base_num', 'loss', 'outstanding', 'balance','num','situation','close_price','assets'
                                      ,'order_1','order_1_num','order_2','order_2_num','order_3','order_3_num','order_4','order_4_num','order_5','order_5_num'])
         demo.loc[len(demo)] = ["", "", "", "", "yes",  100000,0,"","","","",0,"",0,"",0,"",0,"",0]
     else:
-        demo = pd.DataFrame(columns=['date', 'direction', 'price', 'loss', 'outstanding', 'balance','num','situation','close_price','assets'
+        demo = pd.DataFrame(columns=['date', 'direction', 'base_num', 'loss', 'outstanding', 'balance','num','situation','close_price','assets'
                                      ,'order_1','order_1_num','order_2','order_2_num','order_3','order_3_num','order_4','order_4_num','order_5','order_5_num'])
         demo.loc[len(demo)] = ["", "", "", "", "yes",  100000,0,"","","","",0,"",0,"",0,"",0,"",0]
     return demo
@@ -334,28 +336,11 @@ def init_grid(grid,sl,l,exchange):
     l['balance'] = round(balance,2)
     l['num'] = round(l['num'],2)
     l['assets'] = round(assets,2)
+    l['base_num'] = each
     exchange = exchange.append(l, ignore_index=True)
     return exchange
 
 
-#准备删
-# def exchange_grid(gear,grid,sl,now_close):
-#     # if now_close < grid - sl * 2:
-#     #     gear=-2
-#     #     return gear
-#     # if now_close > grid + sl * 2:
-#     #     gear=2
-#     #     return gear
-#     #低于原值
-#     if (grid +sl *gear)>=now_close:
-#         for i in range(-2, gear):
-#             if (grid +sl *i)>=now_close:
-#                 return i
-#     else:
-#         for i in range(2,gear,-1):
-#             if (grid +sl *i)<=now_close:
-#                 return i
-#     return gear
 
 def grid_to_long(normal):
     if normal['close'].iloc[-1] > normal['close'].iloc[-20]  and normal['close'].iloc[-1] > normal['close'].iloc[-19]:
@@ -385,10 +370,6 @@ def grid_to_sell(normal):
     return False
 
 def update_grid(grid,sl,new,exchange):
-
-
-
-
     l = new.copy()
     close_price = l['close_price'].iloc[-1]
     balance = exchange['balance'].iloc[-1]
@@ -396,10 +377,16 @@ def update_grid(grid,sl,new,exchange):
     l['num'] = num
     assets = balance + num * close_price
     each = round(assets / close_price / 2, 2)
+    buy_num=0
+    sell_num=0
+    if num>0:
+        sell_num = num/2
+    else:
+        buy_num = num/2
     for i in range(1, 3):
-        l['order_' + str(i) + '_num'] = each
+        l['order_' + str(i) + '_num'] = each-buy_num
     for i in range(4, 6):
-        l['order_' + str(i) + '_num'] = -each
+        l['order_' + str(i) + '_num'] = -each-sell_num
     for i in range(1, 6):
         l['order_' + str(i)] = round(grid + sl * (i - 3), 2)
     l['order_3_num'] = 0.0
@@ -426,10 +413,13 @@ def update_grid(grid,sl,new,exchange):
                     l['order_' + str(i) + '_num'] = 0
                     l['num'] += num
     l['balance'] = round(balance, 2)
-    l['num'] = round(num, 2)
+    l['num'] = round(l['num'], 2)
     l['assets'] = round(assets, 2)
+    l['base_num'] = each
     exchange = exchange.append(l, ignore_index=True)
     return exchange
+
+
 
 
 
