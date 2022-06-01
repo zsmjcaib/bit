@@ -245,7 +245,7 @@ def statistics(test_15,exchange,loss,flag):
 
     assets = balance+num*price
     new = pd.DataFrame({"date": test_15["date"].iloc[-1], "direction": flag, "price": test_15['close'].iloc[-1], "loss":loss,
-                        "outstanding":'no',"balance":balance,"num":num,"situation":"","close_price":"","assets":assets
+                        "outstanding":'no',"balance":balance,"num":num,"situation":"","close_price":price,"assets":assets
                         ,'order_1':'','order_1_num':'','order_2':'','order_2_num':'','order_3':'','order_3_num':''
                            ,'order_4':'','order_4_num':'','order_5':'','order_5_num':''},index=[1])
     exchange = exchange.append(new, ignore_index=True)
@@ -377,19 +377,19 @@ def update_grid(grid,sl,new,exchange):
     l['num'] = num
     assets = balance + num * close_price
     each = round(assets / close_price / 2, 2)
-    buy_num=0
-    sell_num=0
+    buy_num=0.0
+    sell_num=0.0
     if num>0:
-        sell_num = num/2
+        sell_num = num/3
     else:
-        buy_num = num/2
+        buy_num = num/3
     for i in range(1, 3):
         l['order_' + str(i) + '_num'] = each-buy_num
     for i in range(4, 6):
         l['order_' + str(i) + '_num'] = -each-sell_num
     for i in range(1, 6):
         l['order_' + str(i)] = round(grid + sl * (i - 3), 2)
-    l['order_3_num'] = 0.0
+    l['order_3_num'] = -buy_num-sell_num
 
     flag = 0
     for i in range(1, 6):
@@ -398,7 +398,7 @@ def update_grid(grid,sl,new,exchange):
         if num < 0:
             if close_price >= l['order_' + str(i)].iloc[-1]:
                 balance = balance - num * close_price * 0.998
-                l['order_' + str(i - 1) + '_num'] = abs(num)
+                l['order_' + str(i - 1) + '_num'] += each
                 l['order_' + str(i) + '_num'] = 0
                 l['num'] += num
                 flag = 1
@@ -409,7 +409,7 @@ def update_grid(grid,sl,new,exchange):
             if num > 0:
                 if close_price <= l['order_' + str(i)].iloc[-1]:
                     balance = balance - num * close_price * 1.002
-                    l['order_' + str(i + 1) + '_num'] = -num
+                    l['order_' + str(i + 1) + '_num'] -= each
                     l['order_' + str(i) + '_num'] = 0
                     l['num'] += num
     l['balance'] = round(balance, 2)

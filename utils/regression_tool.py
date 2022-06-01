@@ -166,7 +166,7 @@ def test(type,api):
     b =time.time()
 
 
-    for i, row in real_data[3000:10000].iterrows():
+    for i, row in real_data[3000:].iterrows():
         if i%500 ==0:
             print(test_15.iat[-1,0])
             grid_15_chart = chart_test(test_15_simple, test_15_deal, test_15_line)
@@ -203,9 +203,9 @@ def test(type,api):
         close_price = test_15['close'].iloc[-1]
         high = test_15['high'].iloc[-1]
         low = test_15['low'].iloc[-1]
-        if date == '2021-06-14 15:00:00':
+        if date == '2021-06-05 19:15:00':
             print(1)
-        if date == '2021-06-09 04:00:00':
+        if date == '2021-06-05 19:45:00':
             print(1)
         if date == '2021-06-14 02:00:00':
             print(1)
@@ -226,7 +226,7 @@ def test(type,api):
                 if num<0:
                     if close_price>=exchange['order_'+str(i)].iloc[-1]:
                         balance=balance - num*exchange['order_'+str(i)].iloc[-1]*0.998
-                        l['order_' + str(i-1) + '_num'] = abs(base_num)
+                        l['order_' + str(i-1) + '_num'] = base_num
                         l['order_' + str(i) + '_num']=0
                         l['num'] +=num
                         l['assets'] = round(balance + l['num'] * close_price, 2)
@@ -274,15 +274,22 @@ def test(type,api):
             if exchange['direction'].iloc[-1] == 'long' and exchange['outstanding'].iloc[-1] == 'no':
                 exchange['loss'].iloc[-1]=record_first['loss'].iloc[rise_index]
                 exchange = oustanding(test_15, exchange, 'passive')
-            record_first['flag'].iloc[rise_index] = ''
-            record_first['loss'].iloc[rise_index] = ''
+            if record_first['first'].iloc[rise_index] =='y':
+                record_first['flag'].iloc[rise_index] = ''
+                record_first['loss'].iloc[rise_index] = ''
+            else:
+                record_first['flag'].iloc[rise_index] = 'no'
+
 
         if down_index !='wrong'  and record_first['flag'].iloc[down_index] == ('yes' or 'prepare') and test_15['high'].iloc[-1] > record_first['loss'].iloc[down_index] != '':
             if exchange['direction'].iloc[-1] == 'short' and exchange['outstanding'].iloc[-1] == 'no':
                 exchange['loss'].iloc[-1] = record_first['loss'].iloc[down_index]
                 exchange = oustanding(test_15, exchange, 'passive')
-            record_first['flag'].iloc[down_index] = ''
-            record_first['loss'].iloc[down_index] = ''
+            if record_first['first'].iloc[down_index] =='y':
+                record_first['flag'].iloc[down_index] = ''
+                record_first['loss'].iloc[down_index] = ''
+            else:
+                record_first['flag'].iloc[down_index] = 'no'
 
         if rise_index !='wrong' and record_first['flag'].iloc[rise_index] != 'no' and record_first['point'].iloc[rise_index]!=''\
                 and record_first['point'].iloc[rise_index]>test_15['low'].iloc[-1]:
@@ -379,134 +386,42 @@ def test(type,api):
                 record_first['flag'].iloc[down_index] = 'prepare'
                 record_first['loss'].iloc[down_index] = loss
 
-        # if record_first['is_grid'].iloc[-1] =='yes':
-        #
-        #     balance = exchange['balance'].iloc[-1]
-        #     flag = 0
-        #     for i in range(1,6):
-        #         num = exchange['order_'+str(i)+'_num'].iloc[-1]
-        #         #put
-        #         if num<0:
-        #             if close_price>=exchange['order_'+str(i)].iloc[-1]:
-        #                 balance=balance - num*exchange['order_'+str(i)].iloc[-1]*0.998
-        #                 exchange['order_' + str(i-1) + '_num'].iloc[-1] = abs(num)
-        #                 exchange['order_' + str(i) + '_num'].iloc[-1]=0
-        #                 flag =1
-        #     if flag == 0:
-        #         for i in range(5,0,-1):
-        #             num = exchange['order_'+str(i)+'_num'].iloc[-1]
-        #             #long
-        #             if num>0:
-        #                 if close_price<=exchange['order_'+str(i)].iloc[-1]:
-        #                     balance=balance - num*exchange['order_'+str(i)].iloc[-1]*1.002
-        #                     exchange['order_' + str(i+1) + '_num'].iloc[-1] = -num
-        #                     exchange['order_' + str(i) + '_num'].iloc[-1]=0
-        #
-        #
-        #
-        #
-        #
-        #
-        #
-        #
-        #
-        #
-        #
-        #     gear = record_first['gear'].iloc[-1]
-        #     grid = record_first['grid'].iloc[-1]
-        #     sl = record_first['sl'].iloc[-1]
-        #     base_price = grid+sl*gear
-        #     new_gear = exchange_grid(gear,grid,sl,now_close)
-        #     balance = float(exchange['balance'].iloc[-1])
-        #     num =  float(exchange['num'].iloc[-1])
-        #     if new_gear!=gear:
-        #         while new_gear!=gear:
-        #             #减/沽
-        #             if new_gear>gear:
-        #                 base_price = base_price + sl
-        #                 if gear==-2:
-        #                     num = num * 0.5
-        #                     balance = balance + num*base_price
-        #                     gear+=1
-        #                     continue
-        #                 elif gear ==-1:
-        #                     balance = balance + num*base_price
-        #                     num = 0
-        #                     gear+=1
-        #                     continue
-        #                 elif gear==0:
-        #                     num = -0.5*balance/base_price
-        #                     balance = balance*1.5
-        #                     gear+=1
-        #                     continue
-        #                 elif gear==1:
-        #                     jing = balance + num *base_price
-        #                     num = num - 0.5*(jing)/base_price
-        #                     balance = balance+0.5*(jing)
-        #                     gear+=1
-        #                     continue
-        #             else:
-        #                 #买/平
-        #                 base_price = base_price - sl
-        #
-        #                 if gear ==-1:
-        #                     num = num + balance/base_price
-        #                     balance = 0
-        #                     gear-=1
-        #                     continue
-        #                 elif gear==0:
-        #                     num = num+0.5*balance/base_price
-        #                     balance = balance*0.5
-        #                     gear-=1
-        #                     continue
-        #                 elif gear==1:
-        #                     balance = balance+num*base_price
-        #                     num = 0
-        #                     gear-=1
-        #                     continue
-        #                 elif gear==2:
-        #                     jing = balance +num*base_price
-        #                     num = num + jing*0.5/base_price
-        #                     balance = balance-jing*0.5
-        #                     gear-=1
-        #                     continue
-        #         assets = balance + num * close_price
-        #         new = pd.DataFrame(
-        #             {"date": test_15["date"].iloc[-1], "direction": gear, "price": test_15['close'].iloc[-1], "loss": "",
-        #              "outstanding": 'no', "balance": balance, "num": num, "situation": "active", "close_price": close_price,"assets":assets
-        #                 , 'order_1': '', 'order_1_num': '', 'order_2': '', 'order_2_num': '', 'order_3': '','order_3_num': ''
-        #                 , 'order_4': '', 'order_4_num': '', 'order_5': '', 'order_5_num': ''}, index=[1])
-        #         exchange = exchange.append(new, ignore_index=True)
-        #         record_first['gear'].iloc[-1] = gear
 
-        if record_first['is_grid'].iloc[-1] == 'yes':
+        if record_first['is_grid'].iloc[-1] == 'yes' :
             if grid_to_long(test_15):
+
                 loss = test_15_deal['key'].iloc[-2]
                 print('buy: ' + str(test_15.iat[-1, 0]) + ' price: ' + str(test_15['close'].iloc[-1]) + ' loss: ' + str(
-                    loss) + '网格转梭多' + ' ' + str(test_15['short'].iloc[-1]))
+                    loss) + '转梭多' + ' ' + str(test_15['short'].iloc[-1]))
                 l = pd.DataFrame(
                     {'date': date, 'first': '', '15m': '', '1h': '', '15m小转大': '', '1h小转大': '', 'flag': 'yes', 'loss': loss,
                      'point':  record_first['point'].iloc[-1], 'is_grid': '', 'grid': '', 'sl': '', 'direction': 'min'}, index=[1])
                 record_first = record_first.append(l, ignore_index=True)
-                # exchange = oustanding(test_15, exchange, 'active')
+
+
                 exchange = statistics(test_15,exchange,loss,'long')
                 test_15_deal.iat[-2,4]='yes'
                 test_15_deal.iat[-2,5]='yes'
-
+                # exchange = oustanding(test_15, exchange, 'active')
+                # record_first['is_grid'].iloc[-1] = ''
 
 
             elif grid_to_sell(test_15):
+
                 loss = test_15_deal['key'].iloc[-2]
                 print('sell: ' + str(test_15.iat[-1, 0]) + ' price: ' + str(test_15['close'].iloc[-1]) + ' loss: ' + str(
-                    loss) + '网格转梭空' + ' ' + str(test_15['short'].iloc[-1]))
+                    loss) + '转梭空' + ' ' + str(test_15['short'].iloc[-1]))
                 l = pd.DataFrame(
                     {'date': date, 'first': '', '15m': '', '1h': '', '15m小转大': '', '1h小转大': '', 'flag': 'yes', 'loss': loss,
                      'point': record_first['point'].iloc[-1], 'is_grid': '', 'grid': '', 'sl': '', 'direction': 'max'}, index=[1])
                 record_first = record_first.append(l, ignore_index=True)
-                # exchange = oustanding(test_15, exchange, 'active')
+
                 exchange = statistics(test_15,exchange,loss,'short')
                 test_15_deal.iat[-2,4]='yes'
                 test_15_deal.iat[-2,5]='yes'
+
+                # exchange = oustanding(test_15, exchange, 'active')
+                # record_first['is_grid'].iloc[-1] = ''
 
 
 
