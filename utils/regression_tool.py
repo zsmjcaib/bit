@@ -14,7 +14,7 @@ import numpy as np
 from utils.small_to_large import check
 from utils.strategy_sell import strategy_test_sell
 from utils.util import read_first_record, exchange_record, comp_loss, chaos, launch, vol_confirm, start_grid, judge_buy, \
-    judge_sell, statistics, oustanding, type_V, care, grid_to_long, grid_to_sell, init_grid, update_grid
+    judge_sell, statistics, oustanding, type_V, care, grid_to_long, grid_to_sell, init_grid, update_grid, judge_stop
 import time
 
 def chart_test(df,deal,line):
@@ -130,7 +130,7 @@ def test(type,api):
 
 
 
-    test_15 = real_data[:3000]
+    test_15 = real_data[:4500]
     test_15 = test_15.reset_index(drop=True)
     test_1h = import_csv(test_15, '1H','','init')
     test_4h = import_csv(test_15, '4H','','init')
@@ -166,7 +166,7 @@ def test(type,api):
     b =time.time()
 
 
-    for i, row in real_data[3000:].iterrows():
+    for i, row in real_data[4500:].iterrows():
         if i%500 ==0:
             print(test_15.iat[-1,0])
             grid_15_chart = chart_test(test_15_simple, test_15_deal, test_15_line)
@@ -193,6 +193,7 @@ def test(type,api):
 
         test_15_line = find_line(test_15_deal , test_15_line)
         test_1h_line = find_line(test_1h_deal , test_1h_line)
+
         # test_4h = import_csv(test_15, '4H')
         # test_4h_simple =simpleTrend(test_4h,test_4h_simple)
         # test_4h_deal = find_point(test_4h_simple, test_4h_deal)
@@ -203,11 +204,11 @@ def test(type,api):
         close_price = test_15['close'].iloc[-1]
         high = test_15['high'].iloc[-1]
         low = test_15['low'].iloc[-1]
-        if date == '2021-06-05 19:15:00':
+        if date == '2022-06-01 14:00:00':
             print(1)
-        if date == '2021-06-05 19:45:00':
+        if date == '2021-06-17 14:15:00':
             print(1)
-        if date == '2021-06-14 02:00:00':
+        if date == '2022-06-01 11:15:00':
             print(1)
 
         #成交挂单
@@ -247,6 +248,13 @@ def test(type,api):
                             l['assets'] = round(balance + l['num'] * close_price, 2)
                             l['balance'] = round(balance,2)
                             exchange = exchange.append(l, ignore_index=True)
+
+        if len(record_first)>1 and record_first['first'].iloc[-1] =='' and record_first['flag'].iloc[-1]!= 'no' and\
+                (record_first['direction'].iloc[-1] =='max' or record_first['direction'].iloc[-1] =='min'):
+            record_first,exchange = judge_stop(record_first,exchange,test_15)
+
+
+
 
         if test_15_line['is_test'].iloc[-1] != 'yes':
             if test_15_line['flag'].iloc[-1] =='down':
@@ -309,7 +317,7 @@ def test(type,api):
                 #开启网格
                 sl, grid = start_grid(test_15_deal, 'rise')
                 if sl / now_close > 0.005 and record_first['grid'].iloc[-1] != grid:
-                    record_first.loc[len(record_first)] = [date,0, "","", "","","yes",loss,record_first['point'].iloc[rise_index],"yes",grid,sl,""]
+                    record_first.loc[len(record_first)] = [date,0, "","", "","","yes",loss,record_first['point'].iloc[rise_index],"yes",grid,sl,"",""]
                     print('网格: ' + str(test_15.iat[-1, 0]) + ' 点位:' + str(grid) + ' 密度:' + str(sl) + ' ' + str(
                         grid + sl) + ' ' + str(grid + 2 * sl) + ' ' + str(grid - sl) + ' ' + str(grid - 2 * sl))
                     new = pd.DataFrame(
@@ -330,7 +338,7 @@ def test(type,api):
                          'point': record_first['point'].iloc[rise_index], 'is_grid': '', 'grid': '', 'sl': '', 'direction': 'min'}, index=[1])
                     record_first = record_first.append(l, ignore_index=True)
 
-
+        #重构
         if down_index != 'wrong' and record_first['first'].iloc[down_index] == 'y' and record_first['flag'].iloc[down_index] == 'prepare':
             result,new_loss = care(test_15_deal,test_15_line)
             if result:
@@ -343,7 +351,7 @@ def test(type,api):
                 sl, grid = start_grid(test_15_deal, 'rise')
                 if sl / now_close > 0.005 and record_first['grid'].iloc[-1] != grid:
                     record_first.loc[len(record_first)] = [date, 0, "", "", "", "", "yes", loss,
-                                                           record_first['point'].iloc[down_index], "yes", grid, sl, ""]
+                                                           record_first['point'].iloc[down_index], "yes", grid, sl, "",""]
                     print('网格: ' + str(test_15.iat[-1, 0]) + ' 点位:' + str(grid) + ' 密度:' + str(sl) + ' ' + str(
                         grid + sl) + ' ' + str(grid + 2 * sl) + ' ' + str(grid - sl) + ' ' + str(grid - 2 * sl))
                     new = pd.DataFrame(
@@ -390,12 +398,12 @@ def test(type,api):
         if record_first['is_grid'].iloc[-1] == 'yes' :
             if grid_to_long(test_15):
 
-                loss = test_15_deal['key'].iloc[-2]
+                loss = test_15['low'].iloc[-1]
                 print('buy: ' + str(test_15.iat[-1, 0]) + ' price: ' + str(test_15['close'].iloc[-1]) + ' loss: ' + str(
                     loss) + '转梭多' + ' ' + str(test_15['short'].iloc[-1]))
                 l = pd.DataFrame(
                     {'date': date, 'first': '', '15m': '', '1h': '', '15m小转大': '', '1h小转大': '', 'flag': 'yes', 'loss': loss,
-                     'point':  record_first['point'].iloc[-1], 'is_grid': '', 'grid': '', 'sl': '', 'direction': 'min'}, index=[1])
+                     'point':  record_first['point'].iloc[-1], 'is_grid': '', 'grid': '', 'sl': '', 'direction': 'min','extremum':test_15['low'].iloc[-1]}, index=[1])
                 record_first = record_first.append(l, ignore_index=True)
 
 
@@ -408,12 +416,12 @@ def test(type,api):
 
             elif grid_to_sell(test_15):
 
-                loss = test_15_deal['key'].iloc[-2]
+                loss = test_15['high'].iloc[-1]
                 print('sell: ' + str(test_15.iat[-1, 0]) + ' price: ' + str(test_15['close'].iloc[-1]) + ' loss: ' + str(
                     loss) + '转梭空' + ' ' + str(test_15['short'].iloc[-1]))
                 l = pd.DataFrame(
                     {'date': date, 'first': '', '15m': '', '1h': '', '15m小转大': '', '1h小转大': '', 'flag': 'yes', 'loss': loss,
-                     'point': record_first['point'].iloc[-1], 'is_grid': '', 'grid': '', 'sl': '', 'direction': 'max'}, index=[1])
+                     'point': record_first['point'].iloc[-1], 'is_grid': '', 'grid': '', 'sl': '', 'direction': 'max','extremum':test_15['low'].iloc[-1]}, index=[1])
                 record_first = record_first.append(l, ignore_index=True)
 
                 exchange = statistics(test_15,exchange,loss,'short')
@@ -430,7 +438,7 @@ def test(type,api):
             if long_to_grid_test(test_15_simple[-1500:].reset_index(drop=True),date,test_15_deal,test_15_line,test_1h_line,record_first):
                 sl, grid = start_grid(test_15_deal, 'rise')
                 if sl / now_close > 0.005 and record_first['grid'].iloc[-1] != grid:
-                    record_first.loc[len(record_first)] = [date, 0, "", "", "", "", "yes", "10000", record_first['point'].iloc[-1], "yes", grid, sl, ""]
+                    record_first.loc[len(record_first)] = [date, 0, "", "", "", "", "yes", "10000", record_first['point'].iloc[-1], "yes", grid, sl, "",""]
                     print('网格: ' + str(test_15.iat[-1, 0]) + ' 点位:' + str(grid) + ' 密度:' + str(sl) + ' ' + str(
                         grid + sl) + ' ' + str(grid + 2 * sl) + ' ' + str(grid - sl) + ' ' + str(grid - 2 * sl))
 

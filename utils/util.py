@@ -34,11 +34,11 @@ def stock_macd(df):
 
 def read_first_record(path):
     if not os.path.exists(path ):
-        demo = pd.DataFrame(columns=['date','first','15m','1h','15m小转大','1h小转大','flag','loss','point','is_grid','grid','sl','direction'])
-        demo.loc[len(demo)] = [ "1997","", "","", "","","","","","","","",""]
+        demo = pd.DataFrame(columns=['date','first','15m','1h','15m小转大','1h小转大','flag','loss','point','is_grid','grid','sl','direction', 'extremum'])
+        demo.loc[len(demo)] = [ "1997","", "","", "","","","","","","","","",""]
     else:
-        demo = pd.DataFrame(columns=['date', 'first', '15m', '1h', '15m小转大', '1h小转大', 'flag','loss','point','is_grid','grid','sl','direction'])
-        demo.loc[len(demo)] = [ "1997","", "","", "","","","","","","","",""]
+        demo = pd.DataFrame(columns=['date', 'first', '15m', '1h', '15m小转大', '1h小转大', 'flag','loss','point','is_grid','grid','sl','direction', 'extremum'])
+        demo.loc[len(demo)] = [ "1997","", "","", "","","","","","","","","",""]
         # demo = pd.read_csv(path )
     return demo
 
@@ -416,6 +416,133 @@ def update_grid(grid,sl,new,exchange):
     l['num'] = round(l['num'], 2)
     l['assets'] = round(assets, 2)
     l['base_num'] = each
+    exchange = exchange.append(l, ignore_index=True)
+    return exchange
+
+def judge_stop(record_first,exchange,test_15):
+    #long put 止盈损
+    cost = test_15[test_15['date'] == record_first['date'].iloc[-1]]['close'].iloc[-1]
+    record_first = record_first.copy()
+    exchange = exchange.copy()
+    if record_first['direction'].iloc[-1] == 'max':
+        if test_15['low'].iloc[-1]<record_first['extremum'].iloc[-1]:
+            record_first['extremum'].iloc[-1] = test_15['low'].iloc[-1]
+        per = 1 - record_first['extremum'].iloc[-1]/cost
+        now = 1 - test_15['close'].iloc[-1]/cost
+        if test_15['ma5'].iloc[-1] > test_15['ma20'].iloc[-1]:
+            exchange = oustanding(test_15, exchange, 'active')
+            record_first['flag'].iloc[-1] = 'no'
+            return record_first, exchange
+
+    else:
+        if test_15['high'].iloc[-1]>record_first['extremum'].iloc[-1]:
+            record_first['extremum'].iloc[-1] = test_15['high'].iloc[-1]
+        per = record_first['extremum'].iloc[-1]/cost - 1
+        now = test_15['close'].iloc[-1]/cost - 1
+        if test_15['ma5'].iloc[-1] < test_15['ma20'].iloc[-1]:
+            exchange = oustanding(test_15, exchange, 'active')
+            record_first['flag'].iloc[-1] = 'no'
+            return record_first, exchange
+
+    # if per>0.05:
+    #     if per-now >per * 0.4:
+    #         exchange = oustanding(test_15,exchange,'active')
+    #         record_first['flag'].iloc[-1] = 'no'
+    #         return record_first,exchange
+
+    return record_first, exchange
+
+
+def update_sell_grid(grid,sl,new,exchange):
+    l = new.copy()
+    close_price = l['close_price'].iloc[-1]
+    balance = exchange['balance'].iloc[-1]
+    num = exchange['num'].iloc[-1]
+    l['num'] = num
+    assets = balance + num * close_price
+    each = round(assets / close_price / 4, 2)
+    buy_num=0.0
+    sell_num=0.0
+    if num>0:
+        sell_num = num/3
+    else:
+        buy_num = num/3
+    for i in range(1, 3):
+        l['order_' + str(i) + '_num'] = 0-buy_num
+    for i in range(4, 6):
+        l['order_' + str(i) + '_num'] = -each-sell_num
+    for i in range(1, 6):
+        l['order_' + str(i)] = round(grid + sl * (i - 3), 2)
+    l['order_3_num'] = -2*each-buy_num-sell_num
+
+    if close_price >= l['order_3' ].iloc[-1]:
+        balance = balance - l['order_3_num'].iloc[-1] * close_price * 0.998
+        l['num'] += l['order_3_num'].iloc[-1]
+        l['order_1_num'] += each
+        l['order_2_num'] += each
+        l['order_3_num'] = 0.0
+        if close_price >= l['order_4' ].iloc[-1]:
+            balance = balance - l['order_4_num'].iloc[-1] * close_price * 0.998
+            l['num'] += l['order_4_num'].iloc[-1]
+            l['order_3_num'] += each
+            l['order_4_num'] = 0.0
+            if close_price >= l['order_5'].iloc[-1]:
+                balance = balance - l['order_5_num'].iloc[-1] * close_price * 0.998
+                l['num'] += l['order_5_num'].iloc[-1]
+                l['order_4_num'] += each
+                l['order_5_num'] = 0.0
+
+
+    l['balance'] = round(balance, 2)
+    l['num'] = round(l['num'], 2)
+    l['assets'] = round( (balance + num * close_price),2)
+    l['base_num'] = each
+    exchange = exchange.append(l, ignore_index=True)
+    return exchange
+
+
+def update_buy_grid(grid, sl, new, exchange):
+    l = new.copy()
+    close_price = l['close_price'].iloc[-1]
+    balance = exchange['balance'].iloc[-1]
+    num = exchange['num'].iloc[-1]
+    l['num'] = num
+    assets = balance + num * close_price
+    each = round(assets / close_price / 4, 2)
+    buy_num = 0.0
+    sell_num = 0.0
+    if num > 0:
+        sell_num = num / 3
+    else:
+        buy_num = -num / 3
+    for i in range(1, 3):
+        l['order_' + str(i) + '_num'] = each + buy_num
+    for i in range(4, 6):
+        l['order_' + str(i) + '_num'] = 0 - sell_num
+    for i in range(1, 6):
+        l['order_' + str(i)] = round(grid + sl * (i - 3), 2)
+    l['order_3_num'] = 2 * each + buy_num - sell_num
+
+    if close_price <= l['order_3'].iloc[-1]:
+        balance = balance - l['order_3_num'].iloc[-1] * close_price * 1.002
+        l['num'] += l['order_3_num'].iloc[-1]
+        l['order_4_num'] -= each
+        l['order_5_num'] -= each
+        l['order_3_num'] = 0.0
+        if close_price >= l['order_4'].iloc[-1]:
+            balance = balance - l['order_4_num'].iloc[-1] * close_price * 1.002
+            l['num'] += l['order_4_num'].iloc[-1]
+            l['order_3_num'] -= each
+            l['order_4_num'] = 0.0
+            if close_price >= l['order_5'].iloc[-1]:
+                balance = balance - l['order_5_num'].iloc[-1] * close_price * 1.002
+                l['num'] += l['order_5_num'].iloc[-1]
+                l['order_4_num'] -= each
+                l['order_5_num'] = 0.0
+    l['balance'] = round(balance, 2)
+    l['num'] = round(l['num'], 2)
+    l['assets'] = round((balance + num * close_price), 2)
+    l['base_num'] = -each
     exchange = exchange.append(l, ignore_index=True)
     return exchange
 
